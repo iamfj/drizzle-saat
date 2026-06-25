@@ -68,9 +68,9 @@
     "prepublishOnly": "bun run build"
   },
   "dependencies": {
-    "@faker-js/faker": "^9.3.0",
-    "cac": "^6.7.14",
-    "chokidar": "^4.0.3",
+    "@faker-js/faker": "^10.5.0",
+    "cac": "^7.0.0",
+    "chokidar": "^5.0.0",
     "jiti": "^2.4.2",
     "tinyglobby": "^0.2.10"
   },

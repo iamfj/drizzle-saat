@@ -19,6 +19,15 @@ jobs:
       - run: bun run check
       - run: bun run typecheck
       - run: bun run build
+      # Smoke-test the built bin under Bun *through a symlink* (how package
+      # managers expose it). A regression in the entry guard makes the CLI a
+      # silent no-op — exit 0, empty output — in exactly this path.
+      - name: CLI smoke test (Bun, via bin symlink)
+        run: |
+          ln -sf "$PWD/dist/cli.js" /tmp/drizzle-saat-bin
+          OUT=$(bun /tmp/drizzle-saat-bin --help)
+          echo "$OUT"
+          echo "$OUT" | grep -q "drizzle-saat"
 
   test:
     name: Test (Node ${{ matrix.node }})

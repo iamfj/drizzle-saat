@@ -1,5 +1,6 @@
 #!/usr/bin/env node
-import { pathToFileURL } from "node:url";
+import { realpathSync } from "node:fs";
+import { fileURLToPath } from "node:url";
 import { cac } from "cac";
 import { version } from "../package.json";
 import { generateTypes } from "./codegen/generate.js";
@@ -154,8 +155,23 @@ cli.version(version);
 // Only consume argv when run as the actual CLI entry point. Guarding this keeps
 // the module importable (e.g. by unit tests) without parsing the test runner's
 // own argv and triggering a seed run.
-const isEntry =
-  process.argv[1] !== undefined && import.meta.url === pathToFileURL(process.argv[1]).href;
-if (isEntry) {
+//
+// Compare *real* paths: when a package manager runs the bin, `process.argv[1]`
+// is the `node_modules/.bin/drizzle-saat` symlink while `import.meta.url` is the
+// resolved file. Bun resolves the symlink before exposing `argv[1]`, so a raw
+// URL comparison never matches and the CLI silently no-ops. Resolving both sides
+// through `realpathSync` collapses the symlink and works under Node and Bun.
+function isEntrypoint(): boolean {
+  const argv1 = process.argv[1];
+  if (argv1 === undefined) return false;
+  try {
+    return realpathSync(argv1) === realpathSync(fileURLToPath(import.meta.url));
+  } catch {
+    // argv[1] doesn't resolve to a real file (e.g. a REPL/eval invocation).
+    return false;
+  }
+}
+
+if (isEntrypoint()) {
   cli.parse();
 }

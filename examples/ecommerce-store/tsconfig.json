@@ -1,0 +1,14 @@
+{
+  "compilerOptions": {
+    "strict": true,
+    "module": "esnext",
+    "moduleResolution": "bundler",
+    "target": "es2022",
+    "noEmit": true,
+    "skipLibCheck": true,
+    "types": []
+  },
+  // Generated types listed explicitly — TS `include` globs skip dot-dirs, so
+  // ".saat" alone would match nothing. Run `bun run gen` first to create it.
+  "include": ["saat", "db", ".saat/types.d.ts"]
+}

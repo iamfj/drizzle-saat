@@ -1,0 +1,16 @@
+{
+  "compilerOptions": {
+    "strict": true,
+    "module": "esnext",
+    "moduleResolution": "bundler",
+    "target": "es2022",
+    "noEmit": true,
+    "skipLibCheck": true,
+    "types": []
+  },
+  // Include the generated types so `ref()` namespaces, `.where()` predicates,
+  // and row shapes are type-checked. NOTE: the file is listed explicitly —
+  // TypeScript's `include` globs skip dot-directories, so `".saat"` alone would
+  // match nothing. Run `bun run gen` first to create it.
+  "include": ["saat", "db", ".saat/types.d.ts"]
+}

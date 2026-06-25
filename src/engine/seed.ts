@@ -73,7 +73,15 @@ export async function seed(opts: SeedOptions = {}): Promise<SeedReport> {
   try {
     const schema = await loadSchema(config.schemaPaths, config.dialect, jiti);
     const fixtures = await loadFixtures(config.fixturesDir, jiti);
-    plan = buildPlan(fixtures, schema, rng, { scenario: opts.scenario });
+    // Run each fixture's async setup() hook (e.g. password hashing) before row
+    // generation; its resolved value flows into that fixture's data() calls.
+    const setupResults = new Map<string, unknown>();
+    for (const { file, fixture } of fixtures) {
+      if (typeof fixture.setup === "function") {
+        setupResults.set(file, await fixture.setup());
+      }
+    }
+    plan = buildPlan(fixtures, schema, rng, { scenario: opts.scenario, setupResults });
   } finally {
     setActiveClock(null);
   }

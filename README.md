@@ -189,6 +189,33 @@ drizzle-saat --scenario checkout-flow
 Seeds without a scenario are always part of the run; `--scenario X` adds the
 seeds tagged `X` on top.
 
+## Async fixtures
+
+Fixtures are loaded as ES modules, so **top-level `await` is supported** — the
+cleanest way to compute a shared value with full type safety:
+
+```ts
+import { hashPassword } from 'better-auth/crypto'
+const passwordHash = await hashPassword('demo')   // top-level await
+export default defineFixture({
+  seeds: [{ table: users, namespace: 'user', rows: {
+    alice: { email: 'alice@x.com', passwordHash },
+  } }],
+})
+```
+
+For per-fixture async setup, a `setup()` hook runs once before row generation;
+its resolved value is passed to each `data()` as `ctx.setup` (typed `unknown` —
+annotate or cast it):
+
+```ts
+export default defineFixture({
+  setup: async () => ({ token: await mintToken() }),
+  seeds: [{ table: sessions, namespace: 'session', count: 5,
+    data: ({ setup }) => ({ token: (setup as { token: string }).token }) }],
+})
+```
+
 ## CLI
 
 | Command / flag             | Behavior                                                                 |

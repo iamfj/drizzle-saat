@@ -31,6 +31,8 @@ export interface Plan {
 
 export interface BuildPlanOptions {
   scenario?: string;
+  /** Resolved `setup()` value per fixture file, passed to each `data()`. */
+  setupResults?: Map<string, unknown>;
 }
 
 /**
@@ -97,8 +99,9 @@ export function buildPlan(
             `namespace "${namespace}" (${file}) sets \`count\` but no \`data()\` factory.`,
           );
         }
+        const setup = opts.setupResults?.get(file);
         for (let index = 0; index < seed.count; index++) {
-          rows.push({ data: { ...(seed.data({ index }) as Row) } });
+          rows.push({ data: { ...(seed.data({ index, setup }) as Row) } });
         }
       }
       // Neither style provided is a mistake; an explicit `count: 0` (or empty

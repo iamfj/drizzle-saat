@@ -280,6 +280,51 @@ export default defineFixture({ seeds: [{ table: users, namespace: "user", rows: 
     }
   });
 
+  test("async setup() and top-level await feed values into rows", async () => {
+    const asyncCwd = writeProject({
+      "db/schema.ts": `import { integer, sqliteTable, text } from "drizzle-orm/sqlite-core";
+export const accounts = sqliteTable("accounts", {
+  id: integer("id").primaryKey({ autoIncrement: true }),
+  name: text("name").notNull(),
+  secret: text("secret").notNull(),
+});`,
+      "drizzle.config.ts": DRIZZLE_CONFIG,
+      "drizzle-saat.config.ts": "export default { seed: 1 };",
+      // Top-level await computes a shared value; setup() yields a per-fixture one.
+      "drizzle-saat/accounts.ts": `import { defineFixture } from ${JSON.stringify(SAAT_SRC)};
+import { accounts } from "../db/schema";
+const shared = await Promise.resolve("TOPLEVEL");
+export default defineFixture({
+  setup: async () => ({ token: await Promise.resolve("SETUP") }),
+  seeds: [
+    { table: accounts, namespace: "bulk", count: 2,
+      data: ({ index, setup }) => ({ name: "a" + index, secret: (setup as { token: string }).token }) },
+    { table: accounts, namespace: "keyed", rows: {
+      root: { name: "root", secret: shared },
+    } },
+  ],
+});`,
+    });
+    try {
+      const client = new Database(":memory:");
+      client.exec(
+        `CREATE TABLE accounts (id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT NOT NULL, secret TEXT NOT NULL)`,
+      );
+      await seed({ cwd: asyncCwd, dbCredentials: { db: drizzle(client) }, seed: 1 });
+      const secrets = client.query("SELECT name, secret FROM accounts ORDER BY id").all() as {
+        name: string;
+        secret: string;
+      }[];
+      // setup() value reached the bulk data() rows…
+      expect(secrets.filter((r) => r.secret === "SETUP")).toHaveLength(2);
+      // …and the top-level await value reached the keyed row.
+      expect(secrets.find((r) => r.name === "root")?.secret).toBe("TOPLEVEL");
+      client.close();
+    } finally {
+      rmProject(asyncCwd);
+    }
+  });
+
   test("now() inside a fixture is fixed to the configured base time", async () => {
     const clockCwd = writeProject({
       "db/schema.ts": `import { integer, sqliteTable, text } from "drizzle-orm/sqlite-core";

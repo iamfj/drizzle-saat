@@ -67,3 +67,11 @@ defineFixture({ seeds: [{ table: users, namespace: "user", count: 1, data: () =>
 defineSeed({ table: users, namespace: "user", count: 1, data: () => ({ name: "a", age: "old", active: true }) });
 // @ts-expect-error defineSeed keyed rows with a wrong column type is rejected
 defineSeed({ table: users, namespace: "user", rows: { admin: { name: 123, age: 1, active: true } } });
+
+// ── setup(): async hook compiles; ctx.setup is unknown (annotate/cast) ───────
+// async setup() is accepted alongside seeds; ctx.setup is consumed via a cast
+defineFixture({ setup: async () => ({ hash: "x" }), seeds: [{ table: users, namespace: "user", count: 1, data: ({ setup }) => ({ name: (setup as { hash: string }).hash, age: 1, active: true }) }] });
+// sync setup() works too; String(unknown) is allowed
+defineFixture({ setup: () => 42, seeds: [{ table: users, namespace: "user", count: 1, data: ({ setup }) => ({ name: String(setup), age: 1, active: true }) }] });
+// @ts-expect-error ctx.setup is `unknown` — a property access without narrowing is rejected
+defineFixture({ setup: async () => ({ hash: "x" }), seeds: [{ table: users, namespace: "user", count: 1, data: ({ setup }) => ({ name: setup.hash, age: 1, active: true }) }] });

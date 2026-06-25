@@ -76,6 +76,17 @@ describe("createRng", () => {
     expect(r1.faker.internet.email()).toBe(r2.faker.internet.email());
   });
 
+  test("a configured locale changes generated data (still deterministic)", async () => {
+    const { de } = await import("@faker-js/faker");
+    const en1 = createRng(7).faker.person.firstName();
+    const de1 = createRng(7, de).faker.person.firstName();
+    const de2 = createRng(7, de).faker.person.firstName();
+    // German locale yields a different name than the English default, and is
+    // itself stable for the same seed.
+    expect(de1).toBe(de2);
+    expect(de1).not.toBe(en1);
+  });
+
   test("int respects inclusive bounds", () => {
     const r = createRng(123);
     for (let i = 0; i < 1000; i++) {

@@ -28,6 +28,7 @@ export type {
 } from "./refs/ref.js";
 
 export { faker } from "./faker.js";
+export { now } from "./clock.js";
 
 export { defineConfig } from "./config/types.js";
 export type { SaatUserConfig, ResolvedConfig, TruncateMode } from "./config/types.js";

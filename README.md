@@ -196,9 +196,31 @@ seeds tagged `X` on top.
 | `drizzle-saat`                     | Run the seeder (regenerates types first), in one transaction.            |
 | `drizzle-saat --scenario <name>`   | Run the default seeds plus the named scenario.                           |
 | `drizzle-saat --seed <n>`          | Override the RNG seed for this run.                                       |
+| `drizzle-saat --truncate <mode>`   | Wipe strategy: `cascade` (default), `restrict`, or `none` (append).      |
 | `drizzle-saat --dry-run`           | Resolve and order everything; report what *would* be inserted. No writes.|
 | `drizzle-saat --watch`             | Regenerate types as fixtures change.                                     |
 | `drizzle-saat generate`            | (Re)generate the namespace type definitions.                             |
+
+## Determinism
+
+The same seed produces the same dataset. Two helpers keep that guarantee:
+
+- **`faker`** is seeded from the run seed. Set the locale in `drizzle-saat.config.ts`:
+  ```ts
+  import { de } from '@faker-js/faker'
+  export default defineConfig({ locale: de })   // or [de, en, base] for an explicit chain
+  ```
+- **`now()`** is a deterministic clock. App-level Drizzle defaults (`$defaultFn`,
+  `$default`, `$onUpdate`) **are applied on insert** — and those columns are
+  *optional* in fixtures, so you never need to restate `createdAt`/`updatedAt`.
+  But a `() => new Date()` default uses wall-clock time and breaks
+  reproducibility. Use `now()` instead for stable, ordered timestamps:
+  ```ts
+  import { defineFixture, now } from 'drizzle-saat'
+  // Fixed for the whole run (config `now` sets the base; default 2024-01-01):
+  createdAt: now(),
+  updatedAt: now(i * 1000),   // pass an offset in ms for ordering
+  ```
 
 ## Type safety
 

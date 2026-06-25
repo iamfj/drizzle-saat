@@ -280,6 +280,41 @@ export default defineFixture({ seeds: [{ table: users, namespace: "user", rows: 
     }
   });
 
+  test("now() inside a fixture is fixed to the configured base time", async () => {
+    const clockCwd = writeProject({
+      "db/schema.ts": `import { integer, sqliteTable, text } from "drizzle-orm/sqlite-core";
+export const events = sqliteTable("events", {
+  id: integer("id").primaryKey({ autoIncrement: true }),
+  label: text("label").notNull(),
+  at: text("at").notNull(),
+});`,
+      "drizzle.config.ts": DRIZZLE_CONFIG,
+      // Fix the run clock to a known instant.
+      "drizzle-saat.config.ts": `export default { seed: 1, now: "2030-03-04T05:06:07.000Z" };`,
+      "drizzle-saat/events.ts": `import { defineFixture, now } from ${JSON.stringify(SAAT_SRC)};
+import { events } from "../db/schema";
+export default defineFixture({ seeds: [{ table: events, namespace: "event", rows: {
+  base: { label: "base", at: now().toISOString() },
+  later: { label: "later", at: now(86400000).toISOString() },
+} }] });`,
+    });
+    try {
+      const client = new Database(":memory:");
+      client.exec(
+        `CREATE TABLE events (id INTEGER PRIMARY KEY AUTOINCREMENT, label TEXT NOT NULL, at TEXT NOT NULL)`,
+      );
+      await seed({ cwd: clockCwd, dbCredentials: { db: drizzle(client) }, seed: 1 });
+      const at = (label: string) =>
+        (client.query("SELECT at FROM events WHERE label = ?").get(label) as { at: string }).at;
+      expect(at("base")).toBe("2030-03-04T05:06:07.000Z");
+      // now(offset) advances deterministically from the same base (+1 day).
+      expect(at("later")).toBe("2030-03-05T05:06:07.000Z");
+      client.close();
+    } finally {
+      rmProject(clockCwd);
+    }
+  });
+
   test("dry-run surfaces a broken reference without touching a database", async () => {
     const brokenCwd = writeProject({
       "db/schema.ts": SCHEMA,

@@ -1,3 +1,4 @@
+import type { LocaleDefinition } from "@faker-js/faker";
 import type { Dialect } from "../types.js";
 
 /**
@@ -27,6 +28,19 @@ export interface SaatUserConfig {
   chunkSize?: number;
   /** How to wipe before reseeding. Default: `"cascade"`. See {@link TruncateMode}. */
   truncate?: TruncateMode;
+  /**
+   * Faker locale(s) for generated data. Import a locale from `@faker-js/faker`
+   * (e.g. `import { de } from "@faker-js/faker"`). A single locale is used with
+   * `en`/`base` as fallbacks; pass an array to control the fallback chain
+   * yourself. Default: `[en, base]` (English).
+   */
+  locale?: LocaleDefinition | LocaleDefinition[];
+  /**
+   * Base time for the deterministic `now()` helper (a `Date`, epoch ms, or a
+   * parseable date string). Fixes `now()` for the whole run so timestamps are
+   * reproducible. Default: 2024-01-01T00:00:00.000Z.
+   */
+  now?: Date | string | number;
 }
 
 /** Identity helper for type-safe `drizzle-saat.config.ts` authoring. */
@@ -64,6 +78,10 @@ export interface ResolvedConfig {
   chunkSize?: number;
   /** How to wipe before reseeding. */
   truncate: TruncateMode;
+  /** Faker locale chain for generated data. */
+  locale?: LocaleDefinition | LocaleDefinition[];
+  /** Resolved base time (epoch ms) for the deterministic `now()` helper. */
+  clockBase: number;
   /** Absolute path to the resolved drizzle config. */
   drizzleConfigPath: string;
 }

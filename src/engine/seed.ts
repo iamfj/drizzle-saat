@@ -1,4 +1,5 @@
 import type { Table } from "drizzle-orm";
+import { setActiveClock } from "../clock.js";
 import { createLoader, resolveConfig } from "../config/load.js";
 import type { TruncateMode } from "../config/types.js";
 import { createAdapter } from "../dialects/index.js";
@@ -62,11 +63,20 @@ export async function seed(opts: SeedOptions = {}): Promise<SeedReport> {
   const config = await resolveConfig({ cwd: opts.cwd, configPath: opts.configPath });
   const jiti = createLoader();
   const effectiveSeed = opts.seed ?? config.seed;
-  const rng = createRng(effectiveSeed);
+  const rng = createRng(effectiveSeed, config.locale);
 
-  const schema = await loadSchema(config.schemaPaths, config.dialect, jiti);
-  const fixtures = await loadFixtures(config.fixturesDir, jiti);
-  const plan = buildPlan(fixtures, schema, rng, { scenario: opts.scenario });
+  // Fix the deterministic clock across fixture loading *and* row generation, so
+  // `now()` is stable whether it's called in a keyed `rows` literal (evaluated
+  // at fixture import) or a lazy `data()` factory (evaluated during planning).
+  setActiveClock(config.clockBase);
+  let plan: Plan;
+  try {
+    const schema = await loadSchema(config.schemaPaths, config.dialect, jiti);
+    const fixtures = await loadFixtures(config.fixturesDir, jiti);
+    plan = buildPlan(fixtures, schema, rng, { scenario: opts.scenario });
+  } finally {
+    setActiveClock(null);
+  }
 
   const inserted = plan.seeds.map((s) => ({
     namespace: s.namespace,

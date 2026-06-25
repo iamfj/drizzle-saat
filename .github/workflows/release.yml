@@ -35,7 +35,9 @@ jobs:
       # CI gates — don't publish a broken release
       - run: bun run check
       - run: bun run typecheck
-      - run: bun test
+      # `bun run test` scopes to ./test; bare `bun test` would also sweep in the
+      # standalone examples/ suites, which aren't installed in CI.
+      - run: bun run test
       - run: bun run build
 
       # Consume changesets: bump version + rewrite CHANGELOG, then commit to main

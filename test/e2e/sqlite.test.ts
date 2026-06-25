@@ -2,6 +2,7 @@ import { Database } from "bun:sqlite";
 import { afterEach, beforeEach, describe, expect, test } from "bun:test";
 import { drizzle } from "drizzle-orm/bun-sqlite";
 import { seed } from "../../src/engine/seed.js";
+import { InsertError } from "../../src/util/errors.js";
 import { SAAT_SRC, rmProject, writeProject } from "../helpers/project.js";
 
 const SCHEMA = `
@@ -238,7 +239,18 @@ export default defineFixture({ seeds: [{ table: users, namespace: "user", rows: 
     try {
       const { client, db } = makeDb();
       client.exec("INSERT INTO users (first_name, email) VALUES ('Sentinel', 's@x.com')");
-      await expect(seed({ cwd: badCwd, dbCredentials: { db }, seed: 1 })).rejects.toThrow();
+      const err = await seed({ cwd: badCwd, dbCredentials: { db }, seed: 1 }).then(
+        () => null,
+        (e) => e,
+      );
+      // The raw driver error is wrapped with fixture context: which namespace,
+      // table, and keyed row was in the failing batch.
+      expect(err).toBeInstanceOf(InsertError);
+      expect(err.namespace).toBe("user");
+      expect(err.table).toBe("users");
+      expect(err.rowKeys).toEqual(["a"]);
+      expect(err.message).toContain('namespace "user"');
+      expect(err.message).toContain("rows: a");
       // Rolled back: the sentinel survives, nothing partial was committed.
       const rows = client.query("SELECT first_name FROM users").all();
       expect(rows).toEqual([{ first_name: "Sentinel" }]);

@@ -63,6 +63,39 @@ afterAll(() => {
   }
 });
 
+/**
+ * Run the built CLI through a *bin symlink* (how package managers invoke it)
+ * under the given runtime, returning stdout. Reproduces the silent-no-op bug:
+ * when `process.argv[1]` is the symlink but the entry guard compared it against
+ * the resolved `import.meta.url`, `main()` never ran (exit 0, empty output)
+ * under Bun — and under Node via a symlink too.
+ *
+ * Uses `--dry-run` so the assertion is driver-agnostic: it proves the entry
+ * guard fired and `main()` ran end-to-end without needing the native sqlite
+ * driver (which Bun can't load), so the same check works under both runtimes.
+ */
+function runViaSymlink(runtime: "node" | "bun"): string {
+  const link = resolve(REPO, `dist/.cli-smoke-${runtime}`);
+  rmSync(link, { force: true });
+  symlinkSync(CLI, link, "file");
+  try {
+    return execFileSync(runtime, [link, "--dry-run"], { cwd: EXAMPLE, encoding: "utf8" });
+  } finally {
+    rmSync(link, { force: true });
+  }
+}
+
+describe.skipIf(!RUN)("built CLI entrypoint (invoked via bin symlink)", () => {
+  for (const runtime of ["node", "bun"] as const) {
+    test(`${runtime}: entry guard fires, main() runs`, () => {
+      // The bug was a silent no-op: exit 0, empty output, nothing ran.
+      const stdout = runViaSymlink(runtime);
+      expect(stdout).toContain("dry run");
+      expect(stdout).toContain("rows would be inserted");
+    });
+  }
+});
+
 describe.skipIf(!RUN)("built CLI determinism (real bundles)", () => {
   test("same seed → identical faker output across cli/index bundles", () => {
     const a = seedAndRead(7);

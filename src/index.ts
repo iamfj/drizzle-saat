@@ -34,7 +34,7 @@ export type { SaatUserConfig, ResolvedConfig } from "./config/types.js";
 
 export type { Dialect } from "./types.js";
 
-export { SaatError, CycleError, MissingReferenceError } from "./util/errors.js";
+export { SaatError, CycleError, MissingReferenceError, InsertError } from "./util/errors.js";
 
 /** Programmatic seeding entry point (used by the CLI and available to users). */
 export { seed } from "./engine/seed.js";

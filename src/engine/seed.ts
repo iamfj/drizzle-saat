@@ -5,6 +5,7 @@ import { loadFixtures } from "../fixtures/load.js";
 import { createRng } from "../rng/index.js";
 import { loadSchema } from "../schema/introspect.js";
 import type { Row, SchemaEntry } from "../types.js";
+import { InsertError } from "../util/errors.js";
 import { type PlannedSeed, buildPlan } from "./plan.js";
 import { ResolvedStore } from "./resolve.js";
 
@@ -97,7 +98,19 @@ export async function seed(opts: SeedOptions = {}): Promise<SeedReport> {
         let cursor = 0;
         for (let i = 0; i < resolved.length; i += chunkSize) {
           const chunk = resolved.slice(i, i + chunkSize);
-          const pkRows = await adapter.insert(tx, planned.info, chunk);
+          let pkRows: Row[];
+          try {
+            pkRows = await adapter.insert(tx, planned.info, chunk);
+          } catch (err) {
+            // Attribute raw driver errors back to the fixture: which namespace,
+            // table, and (keyed) rows were in the failing batch.
+            throw new InsertError(
+              planned.namespace,
+              planned.info.name,
+              planned.rows.slice(i, i + chunk.length).map((r) => r.key),
+              err as Error,
+            );
+          }
           for (let j = 0; j < chunk.length; j++) {
             store.record(
               planned.namespace,

@@ -62,8 +62,8 @@ function makeProject() {
     "db/schema.ts": SCHEMA,
     "drizzle.config.ts": DRIZZLE_CONFIG,
     "drizzle-saat.config.ts": "export default { seed: 42 };",
-    "drizzle-saat/users.ts": usersFixture,
-    "drizzle-saat/posts.ts": postsFixture,
+    "drizzle-saat/users.fixture.ts": usersFixture,
+    "drizzle-saat/posts.fixture.ts": postsFixture,
   });
 }
 
@@ -208,12 +208,12 @@ describe("sqlite e2e", () => {
       "db/schema.ts": SCHEMA,
       "drizzle.config.ts": DRIZZLE_CONFIG,
       "drizzle-saat.config.ts": "export default { seed: 1, chunkSize: 7 };",
-      "drizzle-saat/users.ts": `import { defineFixture } from ${JSON.stringify(SAAT_SRC)};
+      "drizzle-saat/users.fixture.ts": `import { defineFixture } from ${JSON.stringify(SAAT_SRC)};
 import { users } from "../db/schema";
 const rows = {};
 for (let i = 0; i < 20; i++) rows["u" + i] = { firstName: "U" + i, email: "u" + i + "@x.com" };
 export default defineFixture({ seeds: [{ table: users, namespace: "user", rows }] });`,
-      "drizzle-saat/posts.ts": `import { defineFixture, ref } from ${JSON.stringify(SAAT_SRC)};
+      "drizzle-saat/posts.fixture.ts": `import { defineFixture, ref } from ${JSON.stringify(SAAT_SRC)};
 import { posts } from "../db/schema";
 export default defineFixture({ seeds: [{ table: posts, namespace: "post", rows: {
   first: { title: "first", authorId: ref("user", "u0") },
@@ -249,7 +249,7 @@ export default defineFixture({ seeds: [{ table: posts, namespace: "post", rows: 
       "db/schema.ts": SCHEMA,
       "drizzle.config.ts": DRIZZLE_CONFIG,
       "drizzle-saat.config.ts": "export default { seed: 1 };",
-      "drizzle-saat/bad.ts": `import { defineFixture } from ${JSON.stringify(SAAT_SRC)};
+      "drizzle-saat/bad.fixture.ts": `import { defineFixture } from ${JSON.stringify(SAAT_SRC)};
 import { users } from "../db/schema";
 // Missing required \`firstName\` → SQLite NOT NULL violation on insert.
 export default defineFixture({ seeds: [{ table: users, namespace: "user", rows: {
@@ -303,7 +303,7 @@ export default defineFixture({ seeds: [
         "db/schema.ts": CYCLE_SCHEMA,
         "drizzle.config.ts": DRIZZLE_CONFIG,
         "drizzle-saat.config.ts": `export default { seed: 1, deferConstraints: ${deferConstraints} };`,
-        "drizzle-saat/cycle.ts": CYCLE_FIXTURE,
+        "drizzle-saat/cycle.fixture.ts": CYCLE_FIXTURE,
       });
     }
 
@@ -374,7 +374,7 @@ export const accounts = sqliteTable("accounts", {
       "drizzle.config.ts": DRIZZLE_CONFIG,
       "drizzle-saat.config.ts": "export default { seed: 1 };",
       // Top-level await computes a shared value; setup() yields a per-fixture one.
-      "drizzle-saat/accounts.ts": `import { defineFixture } from ${JSON.stringify(SAAT_SRC)};
+      "drizzle-saat/accounts.fixture.ts": `import { defineFixture } from ${JSON.stringify(SAAT_SRC)};
 import { accounts } from "../db/schema";
 const shared = await Promise.resolve("TOPLEVEL");
 export default defineFixture({
@@ -419,7 +419,7 @@ export const events = sqliteTable("events", {
       "drizzle.config.ts": DRIZZLE_CONFIG,
       // Fix the run clock to a known instant.
       "drizzle-saat.config.ts": `export default { seed: 1, now: "2030-03-04T05:06:07.000Z" };`,
-      "drizzle-saat/events.ts": `import { defineFixture, now } from ${JSON.stringify(SAAT_SRC)};
+      "drizzle-saat/events.fixture.ts": `import { defineFixture, now } from ${JSON.stringify(SAAT_SRC)};
 import { events } from "../db/schema";
 export default defineFixture({ seeds: [{ table: events, namespace: "event", rows: {
   base: { label: "base", at: now().toISOString() },
@@ -448,7 +448,7 @@ export default defineFixture({ seeds: [{ table: events, namespace: "event", rows
       "db/schema.ts": SCHEMA,
       "drizzle.config.ts": DRIZZLE_CONFIG,
       "drizzle-saat.config.ts": "export default { seed: 1 };",
-      "drizzle-saat/posts.ts": `import { defineFixture, ref } from ${JSON.stringify(SAAT_SRC)};
+      "drizzle-saat/posts.fixture.ts": `import { defineFixture, ref } from ${JSON.stringify(SAAT_SRC)};
 import { posts } from "../db/schema";
 export default defineFixture({ seeds: [{ table: posts, namespace: "post", count: 1,
   data: () => ({ title: "t", authorId: ref("ghost").random() }) }] });`,

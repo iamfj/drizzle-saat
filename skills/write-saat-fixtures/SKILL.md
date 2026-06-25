@@ -5,8 +5,10 @@ description: Write correct drizzle-saat fixtures — defineFixture, ref(), keyed
 
 # Write drizzle-saat fixtures
 
-A fixture is a default-exported `defineFixture({ seeds: [...] })` file living under
-the fixtures dir (default `drizzle-saat/`). Each seed fills one table; relationships
+A fixture is a default-exported `defineFixture({ seeds: [...] })` file named
+`*.fixture.ts` under the fixtures dir (default `drizzle-saat/`). Only
+`*.fixture.{ts,mts,cts,js,mjs}` files are loaded, so shared catalogs/helpers can
+live in the same directory. Each seed fills one table; relationships
 are declared with `ref()`. The engine builds a dependency graph from refs + foreign
 keys, topologically orders inserts, resolves every ref to a freshly-inserted id, and
 runs deterministically in one transaction.

@@ -53,7 +53,9 @@ Prerequisite: the repo already has `drizzle-orm`, a `drizzle.config.ts` with
    (the file overlays it per field).
 
 5. **Create the fixtures dir** (default `drizzle-saat/`) and add at least one
-   fixture file. See the `write-saat-fixtures` skill. Minimal example:
+   fixture file named `*.fixture.ts` (only `*.fixture.{ts,mts,cts,js,mjs}` files
+   are loaded, so helpers/catalogs can colocate). See the `write-saat-fixtures`
+   skill. Minimal example (`drizzle-saat/seed.fixture.ts`):
    ```ts
    import { defineFixture, faker, ref } from "drizzle-saat";
    import { users, posts } from "../db/schema";

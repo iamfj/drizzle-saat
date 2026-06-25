@@ -100,10 +100,11 @@ export default defineConfig({
 })
 ```
 
-**2. Write fixtures** in `drizzle-saat/`:
+**2. Write fixtures** in `drizzle-saat/` — each fixture file is named
+`*.fixture.ts` (so shared catalogs/helpers can live alongside them):
 
 ```ts
-// drizzle-saat/users.ts
+// drizzle-saat/users.fixture.ts
 import { defineFixture, faker, ref } from 'drizzle-saat'
 import { users, posts } from '../db/schema'
 

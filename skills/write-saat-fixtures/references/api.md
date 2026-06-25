@@ -167,6 +167,7 @@ auto-generated ("Do not edit") and sorted for reproducibility.
 
 | Mistake | Correct pattern |
 |---|---|
+| Fixture file not named `*.fixture.ts` | Only `*.fixture.{ts,mts,cts,js,mjs}` are loaded; rename (e.g. `users.ts` → `users.fixture.ts`) |
 | `faker.date.recent({ days: 30 })` without refDate | Always add `refDate: "2026-06-01T00:00:00.000Z"` |
 | Reusing a `namespace` across two seeds | Namespaces are global + unique; use distinct names even on one table |
 | `ref()` to a composite-/no-PK table | Only single-PK tables can be ref targets |

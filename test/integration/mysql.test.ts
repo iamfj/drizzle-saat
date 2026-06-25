@@ -73,8 +73,8 @@ beforeAll(async () => {
   cwd = writeProject({
     "db/schema.ts": SCHEMA,
     "drizzle.config.ts": drizzleConfig,
-    "drizzle-saat/users.ts": usersFixture,
-    "drizzle-saat/posts.ts": postsFixture,
+    "drizzle-saat/users.fixture.ts": usersFixture,
+    "drizzle-saat/posts.fixture.ts": postsFixture,
   });
 });
 

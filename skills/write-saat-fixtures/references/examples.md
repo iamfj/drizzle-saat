@@ -34,7 +34,7 @@ Namespaces are global, so `orders.ts` references `customer`/`product` defined in
 separate `catalog.ts` — no import of the other fixture.
 
 ```ts
-// orders.ts
+// orders.fixture.ts
 import { defineFixture, faker, ref } from "drizzle-saat";
 import { orderItems, orders } from "../db/schema";
 
@@ -133,10 +133,10 @@ reference others. Seed it as explicit keyed rows:
 ## Scenarios
 
 ```ts
-// base.ts — no scenario, always runs
+// base.fixture.ts — no scenario, always runs
 export default defineFixture({ seeds: [ /* ... */ ] });
 
-// load.ts — only runs with `drizzle-saat --scenario load`, in addition to base
+// load.fixture.ts — only runs with `drizzle-saat --scenario load`, in addition to base
 export default defineFixture({
   scenario: "load",
   seeds: [ { table: events, namespace: "loadEvent", count: 5_000, data: () => ({ /* ... */ }) } ],

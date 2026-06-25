@@ -23,7 +23,7 @@ bun run verify    # seed twice with the same seed → assert byte-identical data
 ## The pitch, in one screen
 
 ```ts
-// social-network/drizzle-saat/content.ts — 120 posts, each with a nested ref in JSON
+// social-network/drizzle-saat/content.fixture.ts — 120 posts, each with a nested ref in JSON
 {
   table: posts, namespace: "post", count: 120,
   data: () => ({

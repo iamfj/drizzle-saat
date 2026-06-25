@@ -41,7 +41,7 @@ describe("generateTypes", () => {
     cwd = writeProject({
       "db/schema.ts": SCHEMA,
       "drizzle.config.ts": DRIZZLE_CONFIG,
-      "drizzle-saat/fixtures.ts": fixture,
+      "drizzle-saat/fixtures.fixture.ts": fixture,
     });
     const config = await resolveConfig({ cwd });
     const result = await generateTypes(config);
@@ -94,7 +94,7 @@ export const membership = sqliteTable("membership", {
   groupId: integer("group_id").notNull(),
 }, (t) => [primaryKey({ columns: [t.userId, t.groupId] })]);`,
       "drizzle.config.ts": `export default { dialect: "sqlite", schema: "./db", dbCredentials: { url: ":memory:" } };`,
-      "drizzle-saat/fixtures.ts": `import { defineFixture } from ${JSON.stringify(SAAT_SRC)};
+      "drizzle-saat/fixtures.fixture.ts": `import { defineFixture } from ${JSON.stringify(SAAT_SRC)};
 import { users } from "../db/a";
 import { membership } from "../db/b";
 export default defineFixture({ seeds: [

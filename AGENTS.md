@@ -84,6 +84,17 @@ Public contracts live in `src/types.ts`, `src/config/types.ts`,
 generated data must stay seed-reproducible — notably, `faker.date.*` calls need
 a fixed `refDate`, or runs stop being reproducible.
 
+## Agent skills
+
+This repo ships [Agent Skills](https://agentskills.io) in [`skills/`](./skills) for
+agents consuming saat in other projects (installable via `npx skills add
+iamfj/drizzle-saat`): `setup-drizzle-saat`, `write-saat-fixtures` (+ `references/`),
+and `test-with-drizzle-saat`. When editing fixtures here (e.g. under
+`examples/*/drizzle-saat/`), `write-saat-fixtures` is the authoritative guide to
+`defineFixture`, `ref()`, namespaces, scenarios, and the determinism / single-PK /
+self-FK gotchas. Keep the skills in sync when public contracts or fixture authoring
+patterns change.
+
 ## Commit & PR guidelines
 
 - Branch off `main`.

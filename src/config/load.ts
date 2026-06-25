@@ -174,6 +174,7 @@ export async function resolveConfig(opts: ResolveConfigOptions = {}): Promise<Re
     typesOut,
     seed: userConfig.seed ?? 1,
     chunkSize: userConfig.chunkSize,
+    truncate: userConfig.truncate ?? "cascade",
     drizzleConfigPath,
   };
 }

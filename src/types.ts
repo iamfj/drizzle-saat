@@ -73,12 +73,15 @@ export interface DialectAdapter {
   readonly chunkSize: number;
 
   /**
-   * Wipe all given tables. Implementations handle FK constraints per dialect
-   * (TRUNCATE … CASCADE, FK-checks off, PRAGMA foreign_keys=OFF). `tables` are
-   * provided in dependency order (dependents first) for delete-in-order
-   * strategies.
+   * Wipe all given tables. `tables` are provided in dependency order
+   * (dependents first) for delete-in-order strategies.
+   *
+   * - `"cascade"`: also wipe dependents (TRUNCATE … CASCADE / FK-checks-off
+   *   DELETE), even tables not in `tables`.
+   * - `"restrict"`: wipe only the given tables and let the database error if an
+   *   unlisted table still references one.
    */
-  truncate(tx: any, tables: TableInfo[]): Promise<void>;
+  truncate(tx: any, tables: TableInfo[], mode: "cascade" | "restrict"): Promise<void>;
 
   /**
    * Insert `rows` for `info.table` and return, for each input row in order, an

@@ -20,13 +20,23 @@ function makeAdapter(chunkSize: number): DialectAdapter {
     transaction(db: any, fn: (tx: any) => Promise<any>) {
       return db.transaction(fn);
     },
-    async truncate(tx: any, tables: TableInfo[]): Promise<void> {
+    async truncate(tx: any, tables: TableInfo[], mode: "cascade" | "restrict"): Promise<void> {
       if (tables.length === 0) return;
       // Wipe with DELETE (DML), not TRUNCATE (DDL): TRUNCATE forces an implicit
       // COMMIT in MySQL, which would silently end the surrounding transaction
       // and void drizzle-saat's all-or-nothing guarantee. DELETE stays transactional, so
       // a later insert failure still rolls the wipe back. Trade-off: DELETE does
       // not reset AUTO_INCREMENT (acceptable for throwaway dev/test data).
+      //
+      // `restrict` keeps FK checks on and deletes dependent-first (tables arrive
+      // in that order), so an unfixtured table still referencing one errors.
+      // `cascade` drops FK checks for the wipe so any reference order succeeds.
+      if (mode === "restrict") {
+        for (const info of tables) {
+          await tx.execute(sql.raw(`DELETE FROM \`${info.name}\``));
+        }
+        return;
+      }
       await tx.execute(sql.raw("SET FOREIGN_KEY_CHECKS = 0"));
       try {
         for (const info of tables) {

@@ -1,5 +1,6 @@
 import type { Table } from "drizzle-orm";
 import { createLoader, resolveConfig } from "../config/load.js";
+import type { TruncateMode } from "../config/types.js";
 import { createAdapter } from "../dialects/index.js";
 import { loadFixtures } from "../fixtures/load.js";
 import { createRng } from "../rng/index.js";
@@ -19,6 +20,8 @@ export interface SeedOptions {
   seed?: number;
   /** Resolve and order everything but write nothing. */
   dryRun?: boolean;
+  /** Override the configured wipe strategy for this run. See {@link TruncateMode}. */
+  truncate?: TruncateMode;
   /**
    * Override/augment the connection credentials resolved from drizzle.config.
    * Notably accepts a pre-built Drizzle instance as `{ db }` or a driver client
@@ -32,6 +35,8 @@ export interface SeedReport {
   total: number;
   seed: number;
   dryRun: boolean;
+  /** SQL names of the tables that were (or, in dry-run, would be) wiped. */
+  truncated: string[];
   durationMs: number;
 }
 
@@ -70,9 +75,21 @@ export async function seed(opts: SeedOptions = {}): Promise<SeedReport> {
   }));
   const total = inserted.reduce((n, s) => n + s.count, 0);
 
+  const truncateMode = opts.truncate ?? config.truncate;
+  // Wipe dependents first.
+  const truncateTargets = uniqueTables([...plan.seeds].reverse());
+  const truncated = truncateMode === false ? [] : truncateTargets.map((t) => t.name);
+
   if (opts.dryRun) {
     simulate(plan, rng);
-    return { inserted, total, seed: effectiveSeed, dryRun: true, durationMs: Date.now() - start };
+    return {
+      inserted,
+      total,
+      seed: effectiveSeed,
+      dryRun: true,
+      truncated,
+      durationMs: Date.now() - start,
+    };
   }
 
   const dbCredentials = { ...config.dbCredentials, ...opts.dbCredentials };
@@ -80,8 +97,9 @@ export async function seed(opts: SeedOptions = {}): Promise<SeedReport> {
   const { adapter } = handle;
   try {
     await adapter.transaction(handle.db, async (tx) => {
-      // Wipe dependents first.
-      await adapter.truncate(tx, uniqueTables([...plan.seeds].reverse()));
+      if (truncateMode !== false) {
+        await adapter.truncate(tx, truncateTargets, truncateMode);
+      }
 
       const store = new ResolvedStore();
       for (const planned of plan.seeds) {
@@ -130,7 +148,14 @@ export async function seed(opts: SeedOptions = {}): Promise<SeedReport> {
   // Success path: let a dispose failure surface (nothing to mask).
   await handle.dispose();
 
-  return { inserted, total, seed: effectiveSeed, dryRun: false, durationMs: Date.now() - start };
+  return {
+    inserted,
+    total,
+    seed: effectiveSeed,
+    dryRun: false,
+    truncated,
+    durationMs: Date.now() - start,
+  };
 }
 
 function clampChunk(

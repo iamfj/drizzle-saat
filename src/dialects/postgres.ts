@@ -19,10 +19,11 @@ const baseAdapter: Pick<DialectAdapter, "dialect" | "chunkSize" | "transaction">
 
 const adapter: DialectAdapter = {
   ...baseAdapter,
-  async truncate(tx: any, tables: TableInfo[]): Promise<void> {
+  async truncate(tx: any, tables: TableInfo[], mode: "cascade" | "restrict"): Promise<void> {
     if (tables.length === 0) return;
     const names = tables.map(quoted).join(", ");
-    await tx.execute(sql.raw(`TRUNCATE TABLE ${names} RESTART IDENTITY CASCADE`));
+    const clause = mode === "cascade" ? "CASCADE" : "RESTRICT";
+    await tx.execute(sql.raw(`TRUNCATE TABLE ${names} RESTART IDENTITY ${clause}`));
   },
   async insert(tx: any, info: TableInfo, rows: Row[]): Promise<Row[]> {
     if (rows.length === 0) return [];

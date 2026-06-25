@@ -171,6 +171,26 @@ describe("sqlite e2e", () => {
     client.close();
   });
 
+  test("report lists the wiped tables (cascade)", async () => {
+    const { client, db } = makeDb();
+    const report = await seed({ cwd, dbCredentials: { db }, seed: 42 });
+    expect(report.truncated.sort()).toEqual(["posts", "users"]);
+    client.close();
+  });
+
+  test("truncate: false appends instead of wiping", async () => {
+    const { client, db } = makeDb();
+    // First run on an empty DB.
+    const first = await seed({ cwd, dbCredentials: { db }, seed: 42, truncate: false });
+    expect(first.truncated).toEqual([]);
+    expect(client.query("SELECT count(*) c FROM users").get()).toEqual({ c: 22 });
+    // Second run appends: the previous rows survive, new ones pile on.
+    await seed({ cwd, dbCredentials: { db }, seed: 42, truncate: false });
+    expect(client.query("SELECT count(*) c FROM users").get()).toEqual({ c: 44 });
+    expect(client.query("SELECT count(*) c FROM posts").get()).toEqual({ c: 104 });
+    client.close();
+  });
+
   test("dry-run writes nothing", async () => {
     const { client, db } = makeDb();
     const report = await seed({ cwd, dbCredentials: { db }, seed: 42, dryRun: true });

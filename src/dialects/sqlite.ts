@@ -24,10 +24,14 @@ const adapter: DialectAdapter = {
       throw err;
     }
   },
-  async truncate(tx: any, tables: TableInfo[]): Promise<void> {
+  async truncate(tx: any, tables: TableInfo[], mode: "cascade" | "restrict"): Promise<void> {
     if (tables.length === 0) return;
-    // Defer FK checks until COMMIT so we can wipe parents and children freely.
-    await tx.run(sql.raw("PRAGMA defer_foreign_keys = ON"));
+    // Cascade: defer FK checks until COMMIT so we can wipe parents and children
+    // freely. Restrict: leave FK checks immediate and rely on dependent-first
+    // ordering, so an unfixtured table still referencing one errors.
+    if (mode === "cascade") {
+      await tx.run(sql.raw("PRAGMA defer_foreign_keys = ON"));
+    }
     const hasSeq =
       (
         (await tx.all(

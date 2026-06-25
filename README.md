@@ -264,11 +264,18 @@ it is part of your project's compilation. Add the **file** to your `tsconfig.jso
 - **drizzle-saat only manages tables that have fixtures.** It truncates and seeds the
   tables backing your namespaces; tables you don't write fixtures for are left
   untouched (and won't be wiped between runs).
-- **Postgres truncation uses `TRUNCATE … RESTART IDENTITY CASCADE`.** `CASCADE`
-  can also remove rows from *other* tables that hold foreign keys into the
-  seeded tables, even if those tables aren't part of your fixtures. This is
-  expected for a wipe-and-reseed dev/test tool — just don't point `drizzle-saat` at a
-  database whose other tables you care about (and never at production).
+- **Wipe strategy is configurable via `truncate`** (config or `--truncate`),
+  defaulting to `"cascade"`:
+  - `"cascade"` (default) — wipe fixtured tables *and* anything referencing
+    them (Postgres `TRUNCATE … RESTART IDENTITY CASCADE`; FK-checks-off `DELETE`
+    on MySQL/SQLite). Note the blast radius: `CASCADE` can also remove rows from
+    *other* tables that hold foreign keys into the seeded tables, even ones you
+    didn't fixture. Don't point drizzle-saat at a database whose other tables you
+    care about (and never at production).
+  - `"restrict"` — wipe only the fixtured tables (dependent-first) and error if
+    an unfixtured table still references one. Safer for partial seeds.
+  - `false` — don't wipe at all; append to existing data (test-factory mode).
+  The seed report (and CLI output) lists exactly which tables were wiped.
 - **References resolve to a single primary-key value.** A table with a
   composite primary key can be seeded, but cannot be the *target* of a `ref()`.
 

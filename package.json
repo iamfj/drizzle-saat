@@ -43,7 +43,7 @@
     "./package.json": "./package.json"
   },
   "bin": {
-    "drizzle-saat": "./dist/cli.js"
+    "drizzle-saat": "dist/cli.js"
   },
   "files": [
     "dist/**/*.js",

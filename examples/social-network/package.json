@@ -1,0 +1,20 @@
+{
+  "name": "saat-example-social-network",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "gen": "saat generate",
+    "typecheck": "saat generate && tsc --noEmit",
+    "seed": "bun seed.ts",
+    "verify": "bun seed.ts --verify",
+    "reset": "rm -rf dev.db .saat",
+    "postinstall": "saat generate"
+  },
+  "dependencies": {
+    "saat": "file:../..",
+    "drizzle-orm": "^0.38.3"
+  },
+  "devDependencies": {
+    "typescript": "^5.7.3"
+  }
+}

@@ -90,6 +90,7 @@ interface SaatUserConfig {
   truncate?: "cascade" | "restrict" | false; // wipe strategy, default "cascade"
   locale?: LocaleDefinition | LocaleDefinition[]; // faker locale(s), default [en, base]
   now?: Date | string | number; // base time for now(), default 2024-01-01
+  deferConstraints?: boolean; // defer FK checks + drop FK ordering, default false
 }
 ```
 
@@ -170,6 +171,8 @@ auto-generated ("Do not edit") and sorted for reproducibility.
 | Reusing a `namespace` across two seeds | Namespaces are global + unique; use distinct names even on one table |
 | `ref()` to a composite-/no-PK table | Only single-PK tables can be ref targets |
 | Referencing another row in the same namespace | Split into two namespaces on the same table |
+| Mutual/cyclic real FKs trip a `CycleError` | Set `deferConstraints: true` (literal ids); `ref()` cycles still need to be acyclic |
+| Restating `createdAt`/`updatedAt` everywhere | App-level defaults apply on insert; use `now()` for deterministic time |
 | `count` without `data()` | Provide `data: (ctx) => ({...})`, or use keyed `rows` |
 | Drizzle `.references()` self-FK + two namespaces on the table | Make the self-ref column soft (no `.references()`); order via `ref()` |
 | `"include": [".drizzle-saat"]` in tsconfig | List the file explicitly: `".drizzle-saat/types.d.ts"` |

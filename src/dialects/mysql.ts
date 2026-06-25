@@ -81,6 +81,15 @@ function makeAdapter(chunkSize: number): DialectAdapter {
       await tx.insert(info.table).values(rows);
       return echoPkValues(info, rows);
     },
+    async deferConstraints(tx: any): Promise<() => Promise<void>> {
+      // MySQL has no deferred constraints — disable FK checks for the run. Note:
+      // this skips FK validation entirely (no check at commit). The returned
+      // restore re-enables the session var so it doesn't leak on the connection.
+      await tx.execute(sql.raw("SET FOREIGN_KEY_CHECKS = 0"));
+      return async () => {
+        await tx.execute(sql.raw("SET FOREIGN_KEY_CHECKS = 1"));
+      };
+    },
   };
 }
 

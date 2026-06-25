@@ -57,6 +57,12 @@ const adapter: DialectAdapter = {
     }
     return (await tx.insert(info.table).values(rows).returning(proj)) as Row[];
   },
+  async deferConstraints(tx: any): Promise<() => Promise<void>> {
+    // Deferred FKs are still validated at COMMIT. Auto-clears when the txn ends,
+    // so restore is a no-op.
+    await tx.run(sql.raw("PRAGMA defer_foreign_keys = ON"));
+    return async () => {};
+  },
 };
 
 /**

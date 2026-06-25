@@ -92,4 +92,12 @@ export interface DialectAdapter {
 
   /** Run `fn` inside a single all-or-nothing transaction. */
   transaction<T>(db: any, fn: (tx: any) => Promise<T>): Promise<T>;
+
+  /**
+   * Defer foreign-key enforcement for the rest of the transaction (opt-in
+   * `deferConstraints`), so inserts can run in any order. Returns a function
+   * that restores the previous behavior (a no-op where deferral is
+   * transaction-scoped, e.g. Postgres/SQLite).
+   */
+  deferConstraints(tx: any): Promise<() => Promise<void>>;
 }

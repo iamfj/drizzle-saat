@@ -2,7 +2,7 @@ import type { Table } from "drizzle-orm";
 import { setActiveClock } from "../clock.js";
 import { createLoader, resolveConfig } from "../config/load.js";
 import type { TruncateMode } from "../config/types.js";
-import { createAdapter } from "../dialects/index.js";
+import { type AdapterHandle, createAdapter } from "../dialects/index.js";
 import { loadFixtures } from "../fixtures/load.js";
 import { createRng } from "../rng/index.js";
 import { loadSchema } from "../schema/introspect.js";
@@ -23,6 +23,8 @@ export interface SeedOptions {
   dryRun?: boolean;
   /** Override the configured wipe strategy for this run. See {@link TruncateMode}. */
   truncate?: TruncateMode;
+  /** Defer FK enforcement and drop FK-based ordering for this run. */
+  deferConstraints?: boolean;
   /**
    * Override/augment the connection credentials resolved from drizzle.config.
    * Notably accepts a pre-built Drizzle instance as `{ db }` or a driver client
@@ -64,6 +66,7 @@ export async function seed(opts: SeedOptions = {}): Promise<SeedReport> {
   const jiti = createLoader();
   const effectiveSeed = opts.seed ?? config.seed;
   const rng = createRng(effectiveSeed, config.locale);
+  const deferConstraints = opts.deferConstraints ?? config.deferConstraints;
 
   // Fix the deterministic clock across fixture loading *and* row generation, so
   // `now()` is stable whether it's called in a keyed `rows` literal (evaluated
@@ -81,7 +84,11 @@ export async function seed(opts: SeedOptions = {}): Promise<SeedReport> {
         setupResults.set(file, await fixture.setup());
       }
     }
-    plan = buildPlan(fixtures, schema, rng, { scenario: opts.scenario, setupResults });
+    plan = buildPlan(fixtures, schema, rng, {
+      scenario: opts.scenario,
+      setupResults,
+      deferConstraints,
+    });
   } finally {
     setActiveClock(null);
   }
@@ -119,51 +126,19 @@ export async function seed(opts: SeedOptions = {}): Promise<SeedReport> {
         await adapter.truncate(tx, truncateTargets, truncateMode);
       }
 
-      const store = new ResolvedStore();
-      for (const planned of plan.seeds) {
-        store.init(planned.namespace, planned.info.primaryKeys);
-
-        const resolved = planned.rows.map((r) => store.resolveRow(r.data, rng));
-        const columnCount = planned.info.columns.length;
-        const chunkSize = clampChunk(
-          config.chunkSize ?? adapter.chunkSize,
-          columnCount,
-          handle.chunkLimitFor,
-        );
-
-        let cursor = 0;
-        for (let i = 0; i < resolved.length; i += chunkSize) {
-          const chunk = resolved.slice(i, i + chunkSize);
-          let pkRows: Row[];
-          try {
-            pkRows = await adapter.insert(tx, planned.info, chunk);
-          } catch (err) {
-            // Attribute raw driver errors back to the fixture: which namespace,
-            // table, and (keyed) rows were in the failing batch.
-            throw new InsertError(
-              planned.namespace,
-              planned.info.name,
-              planned.rows.slice(i, i + chunk.length).map((r) => r.key),
-              err as Error,
-            );
-          }
-          for (let j = 0; j < chunk.length; j++) {
-            store.record(
-              planned.namespace,
-              { key: planned.rows[cursor]!.key, data: chunk[j]! },
-              pkRows[j] ?? {},
-            );
-            cursor++;
-          }
-        }
+      // Defer FK enforcement for the insert phase if requested, restoring the
+      // previous behavior afterward (and on failure, before the rollback).
+      const restoreConstraints = deferConstraints ? await adapter.deferConstraints(tx) : undefined;
+      try {
+        await insertAll(plan, tx, handle, rng, config);
+      } finally {
+        if (restoreConstraints) await restoreConstraints();
       }
     });
   } catch (err) {
-    // Tear down, but never let a dispose failure bury the real seeding error.
     await handle.dispose().catch(() => {});
     throw err;
   }
-  // Success path: let a dispose failure surface (nothing to mask).
   await handle.dispose();
 
   return {
@@ -174,6 +149,55 @@ export async function seed(opts: SeedOptions = {}): Promise<SeedReport> {
     truncated,
     durationMs: Date.now() - start,
   };
+}
+
+/** Resolve refs and insert every planned seed in order, recording ids for refs. */
+async function insertAll(
+  plan: Plan,
+  tx: any,
+  handle: AdapterHandle,
+  rng: ReturnType<typeof createRng>,
+  config: Awaited<ReturnType<typeof resolveConfig>>,
+): Promise<void> {
+  const { adapter } = handle;
+  const store = new ResolvedStore();
+  for (const planned of plan.seeds) {
+    store.init(planned.namespace, planned.info.primaryKeys);
+
+    const resolved = planned.rows.map((r) => store.resolveRow(r.data, rng));
+    const columnCount = planned.info.columns.length;
+    const chunkSize = clampChunk(
+      config.chunkSize ?? adapter.chunkSize,
+      columnCount,
+      handle.chunkLimitFor,
+    );
+
+    let cursor = 0;
+    for (let i = 0; i < resolved.length; i += chunkSize) {
+      const chunk = resolved.slice(i, i + chunkSize);
+      let pkRows: Row[];
+      try {
+        pkRows = await adapter.insert(tx, planned.info, chunk);
+      } catch (err) {
+        // Attribute raw driver errors back to the fixture: which namespace,
+        // table, and (keyed) rows were in the failing batch.
+        throw new InsertError(
+          planned.namespace,
+          planned.info.name,
+          planned.rows.slice(i, i + chunk.length).map((r) => r.key),
+          err as Error,
+        );
+      }
+      for (let j = 0; j < chunk.length; j++) {
+        store.record(
+          planned.namespace,
+          { key: planned.rows[cursor]!.key, data: chunk[j]! },
+          pkRows[j] ?? {},
+        );
+        cursor++;
+      }
+    }
+  }
 }
 
 function clampChunk(

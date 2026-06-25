@@ -147,3 +147,16 @@ describe("mysql adapter truncate", () => {
     expect(tx.calls.length).toBe(2);
   });
 });
+
+describe("mysql adapter deferConstraints", () => {
+  test("disables FK checks and returns a restore that re-enables them", async () => {
+    const adapter = await getAdapter();
+    const tx = truncateTx();
+    const restore = await adapter.deferConstraints(tx as any);
+    // SET FOREIGN_KEY_CHECKS = 0
+    expect(tx.calls.length).toBe(1);
+    await restore();
+    // SET FOREIGN_KEY_CHECKS = 1
+    expect(tx.calls.length).toBe(2);
+  });
+});

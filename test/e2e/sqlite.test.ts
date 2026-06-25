@@ -280,6 +280,89 @@ export default defineFixture({ seeds: [{ table: users, namespace: "user", rows: 
     }
   });
 
+  describe("deferConstraints (benign FK cycle)", () => {
+    const CYCLE_SCHEMA = `import { integer, sqliteTable } from "drizzle-orm/sqlite-core";
+import { sql } from "drizzle-orm";
+export const nodeA = sqliteTable("node_a", {
+  id: integer("id").primaryKey(),
+  bId: integer("b_id").notNull().references((): any => nodeB.id),
+});
+export const nodeB = sqliteTable("node_b", {
+  id: integer("id").primaryKey(),
+  aId: integer("a_id").notNull().references((): any => nodeA.id),
+});`;
+    const CYCLE_FIXTURE = `import { defineFixture } from ${JSON.stringify(SAAT_SRC)};
+import { nodeA, nodeB } from "../db/schema";
+export default defineFixture({ seeds: [
+  { table: nodeA, namespace: "a", rows: { a1: { id: 1, bId: 1 } } },
+  { table: nodeB, namespace: "b", rows: { b1: { id: 1, aId: 1 } } },
+] });`;
+
+    function makeCycleProject(deferConstraints: boolean) {
+      return writeProject({
+        "db/schema.ts": CYCLE_SCHEMA,
+        "drizzle.config.ts": DRIZZLE_CONFIG,
+        "drizzle-saat.config.ts": `export default { seed: 1, deferConstraints: ${deferConstraints} };`,
+        "drizzle-saat/cycle.ts": CYCLE_FIXTURE,
+      });
+    }
+
+    function makeCycleDb() {
+      const client = new Database(":memory:");
+      client.exec("PRAGMA foreign_keys = ON");
+      client.exec(
+        "CREATE TABLE node_a (id INTEGER PRIMARY KEY, b_id INTEGER NOT NULL REFERENCES node_b(id))",
+      );
+      client.exec(
+        "CREATE TABLE node_b (id INTEGER PRIMARY KEY, a_id INTEGER NOT NULL REFERENCES node_a(id))",
+      );
+      return { client, db: drizzle(client) };
+    }
+
+    test("without deferConstraints, mutual FKs trip a CycleError", async () => {
+      const cwd2 = makeCycleProject(false);
+      try {
+        const { client, db } = makeCycleDb();
+        await expect(seed({ cwd: cwd2, dbCredentials: { db }, seed: 1 })).rejects.toThrow(/cycle/i);
+        client.close();
+      } finally {
+        rmProject(cwd2);
+      }
+    });
+
+    test("with deferConstraints, the cycle seeds and FKs validate at commit", async () => {
+      const cwd2 = makeCycleProject(true);
+      try {
+        const { client, db } = makeCycleDb();
+        const report = await seed({ cwd: cwd2, dbCredentials: { db }, seed: 1 });
+        expect(report.total).toBe(2);
+        expect(client.query("SELECT count(*) c FROM node_a").get()).toEqual({ c: 1 });
+        expect(client.query("SELECT count(*) c FROM node_b").get()).toEqual({ c: 1 });
+        client.close();
+      } finally {
+        rmProject(cwd2);
+      }
+    });
+
+    test("deferConstraints can also be overridden via the seed() option", async () => {
+      const cwd2 = makeCycleProject(false); // config says false…
+      try {
+        const { client, db } = makeCycleDb();
+        // …but the programmatic override turns it on.
+        const report = await seed({
+          cwd: cwd2,
+          dbCredentials: { db },
+          seed: 1,
+          deferConstraints: true,
+        });
+        expect(report.total).toBe(2);
+        client.close();
+      } finally {
+        rmProject(cwd2);
+      }
+    });
+  });
+
   test("async setup() and top-level await feed values into rows", async () => {
     const asyncCwd = writeProject({
       "db/schema.ts": `import { integer, sqliteTable, text } from "drizzle-orm/sqlite-core";

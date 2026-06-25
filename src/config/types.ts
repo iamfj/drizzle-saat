@@ -41,6 +41,18 @@ export interface SaatUserConfig {
    * reproducible. Default: 2024-01-01T00:00:00.000Z.
    */
   now?: Date | string | number;
+  /**
+   * Defer foreign-key enforcement until the seeding transaction commits, and
+   * drop FK-based insert *ordering* — so tables with mutual / cyclic real FKs
+   * (using literal ids) can be seeded in any order. Default: `false`.
+   *
+   * Best-effort per dialect: SQLite (`PRAGMA defer_foreign_keys`) and Postgres
+   * (`SET CONSTRAINTS ALL DEFERRED`, **only** for FKs declared `DEFERRABLE`)
+   * still validate at commit; MySQL (`SET FOREIGN_KEY_CHECKS=0`) skips FK
+   * validation entirely for the run. Does *not* dissolve `ref()` cycles — those
+   * resolve to generated ids and still require acyclic references.
+   */
+  deferConstraints?: boolean;
 }
 
 /** Identity helper for type-safe `drizzle-saat.config.ts` authoring. */
@@ -82,6 +94,8 @@ export interface ResolvedConfig {
   locale?: LocaleDefinition | LocaleDefinition[];
   /** Resolved base time (epoch ms) for the deterministic `now()` helper. */
   clockBase: number;
+  /** Defer FK enforcement + drop FK-based insert ordering. Default `false`. */
+  deferConstraints: boolean;
   /** Absolute path to the resolved drizzle config. */
   drizzleConfigPath: string;
 }

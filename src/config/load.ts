@@ -188,6 +188,7 @@ export async function resolveConfig(opts: ResolveConfigOptions = {}): Promise<Re
     truncate: userConfig.truncate ?? "cascade",
     locale: userConfig.locale,
     clockBase: resolveClockBase(userConfig.now),
+    deferConstraints: userConfig.deferConstraints ?? false,
     drizzleConfigPath,
   };
 }

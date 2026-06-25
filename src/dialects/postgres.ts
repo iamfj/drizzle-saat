@@ -34,6 +34,12 @@ const adapter: DialectAdapter = {
     }
     return (await tx.insert(info.table).values(rows).returning(proj)) as Row[];
   },
+  async deferConstraints(tx: any): Promise<() => Promise<void>> {
+    // Only affects FKs declared DEFERRABLE; still checked at COMMIT. Restore is
+    // a no-op — SET CONSTRAINTS is reset automatically when the txn ends.
+    await tx.execute(sql.raw("SET CONSTRAINTS ALL DEFERRED"));
+    return async () => {};
+  },
 };
 
 /**

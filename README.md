@@ -327,6 +327,13 @@ it is part of your project's compilation. Add the **file** to your `tsconfig.jso
   The seed report (and CLI output) lists exactly which tables were wiped.
 - **References resolve to a single primary-key value.** A table with a
   composite primary key can be seeded, but cannot be the *target* of a `ref()`.
+- **Foreign keys are auto-ordered**, so a real FK inserts its parent first even
+  without a `ref()`. Mutual/cyclic real FKs (with literal ids) otherwise trip a
+  `CycleError`; set `deferConstraints: true` to defer FK enforcement to commit
+  and drop FK-based ordering. Best-effort per dialect — SQLite and Postgres
+  still validate at commit (Postgres **only** for `DEFERRABLE` FKs); MySQL skips
+  FK validation for the run. It does **not** dissolve `ref()` cycles, which
+  resolve to generated ids and still need acyclic references.
 
 ## AI agent skills
 

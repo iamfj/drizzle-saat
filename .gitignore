@@ -1,0 +1,15 @@
+node_modules
+dist
+.saat
+*.log
+.DS_Store
+coverage
+*.tsbuildinfo
+.env
+.env.*
+!.env.example
+test/**/*.db
+test/**/*.sqlite
+test/.tmp
+examples/**/*.db
+examples/**/bun.lock

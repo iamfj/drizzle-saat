@@ -1,0 +1,93 @@
+{
+  "name": "saat",
+  "version": "0.1.0",
+  "description": "TypeScript-native, type-safe database seeding for Drizzle ORM — fixtures as easy as YAML.",
+  "keywords": [
+    "drizzle",
+    "drizzle-orm",
+    "seed",
+    "seeding",
+    "fixtures",
+    "database",
+    "faker",
+    "testing",
+    "postgres",
+    "mysql",
+    "sqlite"
+  ],
+  "license": "MIT",
+  "author": "Fabian Jocks <fabian@jocks.io>",
+  "homepage": "https://github.com/fabianjocks/saat#readme",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/fabianjocks/saat.git"
+  },
+  "bugs": {
+    "url": "https://github.com/fabianjocks/saat/issues"
+  },
+  "type": "module",
+  "main": "./dist/index.cjs",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "import": {
+        "types": "./dist/index.d.ts",
+        "default": "./dist/index.js"
+      },
+      "require": {
+        "types": "./dist/index.d.cts",
+        "default": "./dist/index.cjs"
+      }
+    },
+    "./package.json": "./package.json"
+  },
+  "bin": {
+    "saat": "./dist/cli.js"
+  },
+  "files": [
+    "dist/**/*.js",
+    "dist/**/*.cjs",
+    "dist/**/*.d.ts",
+    "dist/**/*.d.cts",
+    "README.md",
+    "LICENSE"
+  ],
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "build": "tsup",
+    "dev": "tsup --watch",
+    "typecheck": "tsc --noEmit",
+    "lint": "biome lint .",
+    "format": "biome format --write .",
+    "check": "biome check .",
+    "test": "bun test ./test",
+    "test:integration": "INTEGRATION=1 bun test ./test",
+    "prepublishOnly": "bun run build"
+  },
+  "dependencies": {
+    "@faker-js/faker": "^9.3.0",
+    "cac": "^6.7.14",
+    "chokidar": "^4.0.3",
+    "jiti": "^2.4.2",
+    "tinyglobby": "^0.2.10"
+  },
+  "peerDependencies": {
+    "drizzle-orm": ">=0.36.0"
+  },
+  "devDependencies": {
+    "@biomejs/biome": "^1.9.4",
+    "@changesets/cli": "^2.27.11",
+    "@electric-sql/pglite": "^0.2.17",
+    "@types/better-sqlite3": "^7.6.12",
+    "@types/bun": "^1.1.18",
+    "@types/node": "^22.10.5",
+    "better-sqlite3": "^11.8.0",
+    "drizzle-orm": "^0.38.3",
+    "mysql2": "^3.12.0",
+    "tsup": "^8.3.5",
+    "typescript": "^5.7.3"
+  }
+}

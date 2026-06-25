@@ -3,10 +3,13 @@
 Thanks for your interest in improving `saat`! This project uses
 [Bun](https://bun.sh) as its package manager and test runner.
 
+By participating, you agree to abide by our
+[Code of Conduct](./CODE_OF_CONDUCT.md).
+
 ## Getting started
 
 ```bash
-git clone https://github.com/fabianjocks/saat.git
+git clone https://github.com/iamfj/saat.git
 cd saat
 bun install
 ```

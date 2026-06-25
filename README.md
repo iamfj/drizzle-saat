@@ -5,7 +5,7 @@
 **TypeScript-native, type-safe database seeding for [Drizzle ORM](https://orm.drizzle.team).**
 Write fixtures as easy as YAML — fully type-safe, deterministic, and fast.
 
-[![CI](https://github.com/fabianjocks/saat/actions/workflows/ci.yml/badge.svg)](https://github.com/fabianjocks/saat/actions/workflows/ci.yml)
+[![CI](https://github.com/iamfj/saat/actions/workflows/ci.yml/badge.svg)](https://github.com/iamfj/saat/actions/workflows/ci.yml)
 [![npm](https://img.shields.io/npm/v/saat.svg)](https://www.npmjs.com/package/saat)
 [![license](https://img.shields.io/npm/l/saat.svg)](./LICENSE)
 

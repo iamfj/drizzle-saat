@@ -17,13 +17,13 @@
   ],
   "license": "MIT",
   "author": "Fabian Jocks <fabian@jocks.io>",
-  "homepage": "https://github.com/fabianjocks/saat#readme",
+  "homepage": "https://github.com/iamfj/saat#readme",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/fabianjocks/saat.git"
+    "url": "git+https://github.com/iamfj/saat.git"
   },
   "bugs": {
-    "url": "https://github.com/fabianjocks/saat/issues"
+    "url": "https://github.com/iamfj/saat/issues"
   },
   "type": "module",
   "main": "./dist/index.cjs",

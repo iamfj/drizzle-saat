@@ -272,6 +272,22 @@ it is part of your project's compilation. Add the **file** to your `tsconfig.jso
 - **References resolve to a single primary-key value.** A table with a
   composite primary key can be seeded, but cannot be the *target* of a `ref()`.
 
+## AI agent skills
+
+drizzle-saat ships [Agent Skills](https://agentskills.io) in [`skills/`](./skills)
+so coding agents (Claude Code, Codex, Cursor, Copilot, Gemini CLI, and others)
+can set drizzle-saat up and write correct fixtures:
+
+- **setup-drizzle-saat** — add drizzle-saat to an existing Drizzle project
+- **write-saat-fixtures** — author fixtures (`defineFixture`, `ref()`, namespaces, scenarios)
+- **test-with-drizzle-saat** — seed an in-process DB in your test suite
+
+Install them into your agent with the [`skills`](https://www.skills.sh) CLI:
+
+```bash
+npx skills add iamfj/drizzle-saat
+```
+
 ## Contributing
 
 Contributions welcome! See [`CONTRIBUTING.md`](./CONTRIBUTING.md).

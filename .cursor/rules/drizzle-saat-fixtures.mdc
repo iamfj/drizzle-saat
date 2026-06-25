@@ -1,0 +1,28 @@
+---
+description: Authoring drizzle-saat fixtures (defineFixture, ref, namespaces, deterministic faker)
+globs: ["**/drizzle-saat/**/*.{ts,mts,cts,js,mjs}", "**/*.fixture.ts"]
+alwaysApply: false
+---
+
+# Writing drizzle-saat fixtures
+
+A fixture is a default-exported `defineFixture({ seeds: [...] })`. Each seed fills
+one table; relationships are declared with `ref()`. Everything imports from
+`"drizzle-saat"`. Full guidance: the `write-saat-fixtures` skill in `skills/`.
+
+Rules that matter most:
+
+- **Namespaces are global and unique** — two seeds on one table need distinct names.
+- **`ref()` targets need exactly one primary key.** Composite-/no-PK tables can
+  reference others but cannot be a ref target.
+- **A row cannot reference another row in its own namespace** — split into two
+  namespaces on the same table.
+- **Always pass a fixed `refDate` to `faker.date.*`** (e.g.
+  `faker.date.recent({ days: 90, refDate: "2026-06-01T00:00:00.000Z" })`) — otherwise
+  seeds stop being reproducible.
+- A declared Drizzle `.references()` self-FK on a table with two namespaces causes a
+  false `CycleError`; make the self-ref column soft (no `.references()`) and order
+  via `ref()`.
+- `ref()` styles: `ref("user").random()`, `ref("user", "key")`,
+  `ref("user").where({ field })` (first match only). Refs resolve inside plain
+  objects/arrays (JSON columns) but not inside `Date`/class instances.

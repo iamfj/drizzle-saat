@@ -1,17 +1,17 @@
 {
-  "name": "saat-example-ecommerce-store",
+  "name": "drizzle-saat-example-ecommerce-store",
   "private": true,
   "type": "module",
   "scripts": {
-    "gen": "saat generate",
-    "typecheck": "saat generate && tsc --noEmit",
+    "gen": "drizzle-saat generate",
+    "typecheck": "drizzle-saat generate && tsc --noEmit",
     "seed": "bun seed.ts",
     "verify": "bun seed.ts --verify",
-    "reset": "rm -rf dev.db .saat",
-    "postinstall": "saat generate"
+    "reset": "rm -rf dev.db .drizzle-saat",
+    "postinstall": "drizzle-saat generate"
   },
   "dependencies": {
-    "saat": "file:../..",
+    "drizzle-saat": "file:../..",
     "drizzle-orm": "^0.38.3"
   },
   "devDependencies": {

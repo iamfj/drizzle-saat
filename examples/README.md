@@ -1,4 +1,4 @@
-# saat examples
+# drizzle-saat examples
 
 Six runnable projects, small to large, each showing how **complex, reproducible
 data comes from very little fixture code**. Every example uses Bun's built-in
@@ -18,12 +18,12 @@ bun run verify    # seed twice with the same seed → assert byte-identical data
 | 3 | [saas-multitenant](./saas-multitenant) | mid-large | ~80 | ~125 | tenant scoping, **composite-PK** join table |
 | 4 | [social-network](./social-network) | large | ~90 | ~1100 | 8 namespaces, **nested refs in JSON**, threaded comments |
 | 5 | [analytics-events](./analytics-events) | mid-large | ~60 | 50–5050 | **`--scenario`** datasets, high volume |
-| 6 | [testing-with-saat](./testing-with-saat) | practical | ~25 | per-test | deterministic fixtures in a `bun test` suite |
+| 6 | [testing-with-drizzle-saat](./testing-with-drizzle-saat) | practical | ~25 | per-test | deterministic fixtures in a `bun test` suite |
 
 ## The pitch, in one screen
 
 ```ts
-// social-network/saat/content.ts — 120 posts, each with a nested ref in JSON
+// social-network/drizzle-saat/content.ts — 120 posts, each with a nested ref in JSON
 {
   table: posts, namespace: "post", count: 120,
   data: () => ({
@@ -35,13 +35,13 @@ bun run verify    # seed twice with the same seed → assert byte-identical data
 }
 ```
 
-That's the whole posts dataset. saat resolves the refs (top-level **and** nested),
+That's the whole posts dataset. drizzle-saat resolves the refs (top-level **and** nested),
 orders inserts by dependency, and produces the exact same rows for a given seed.
 
 ## Type checking
 
 Every example is wired for full fixture type-safety. After `bun install` (which
-generates `.saat/types.d.ts` via a `postinstall` hook), run:
+generates `.drizzle-saat/types.d.ts` via a `postinstall` hook), run:
 
 ```bash
 bun run typecheck   # regenerates types, then `tsc --noEmit`
@@ -56,8 +56,8 @@ title: ref("user").random()       // ✗ a number ref can't fill a string column
 data: () => ({ title: "t" })      // ✗ missing required NOT NULL columns
 ```
 
-> Each example's `tsconfig.json` lists `".saat/types.d.ts"` **explicitly** —
-> TypeScript's `include` globs skip dot-directories, so `".saat"` alone is
+> Each example's `tsconfig.json` lists `".drizzle-saat/types.d.ts"` **explicitly** —
+> TypeScript's `include` globs skip dot-directories, so `".drizzle-saat"` alone is
 > silently ignored and namespace checking won't work. (See the README's
 > "Type safety" section.)
 
@@ -71,5 +71,5 @@ will differ every run. See [ecommerce-store](./ecommerce-store) for the details.
 
 Each example uses `bun:sqlite` purely so it runs anywhere. In your own project
 you don't write a runner — point `drizzle.config.ts` at your database and use the
-CLI (`npx saat`, `npx saat --scenario load`, `npx saat --seed 7`). The fixtures
+CLI (`npx drizzle-saat`, `npx drizzle-saat --scenario load`, `npx drizzle-saat --seed 7`). The fixtures
 are identical; switch `dialect` to `postgresql` or `mysql` and nothing else changes.

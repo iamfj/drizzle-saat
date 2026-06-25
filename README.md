@@ -1,13 +1,13 @@
 <div align="center">
 
-# saat
+# drizzle-saat
 
 **TypeScript-native, type-safe database seeding for [Drizzle ORM](https://orm.drizzle.team).**
 Write fixtures as easy as YAML — fully type-safe, deterministic, and fast.
 
-[![CI](https://github.com/iamfj/saat/actions/workflows/ci.yml/badge.svg)](https://github.com/iamfj/saat/actions/workflows/ci.yml)
-[![npm](https://img.shields.io/npm/v/saat.svg)](https://www.npmjs.com/package/saat)
-[![license](https://img.shields.io/npm/l/saat.svg)](./LICENSE)
+[![CI](https://github.com/iamfj/drizzle-saat/actions/workflows/ci.yml/badge.svg)](https://github.com/iamfj/drizzle-saat/actions/workflows/ci.yml)
+[![npm](https://img.shields.io/npm/v/drizzle-saat.svg)](https://www.npmjs.com/package/drizzle-saat)
+[![license](https://img.shields.io/npm/l/drizzle-saat.svg)](./LICENSE)
 
 </div>
 
@@ -17,15 +17,54 @@ Seeding a database with Drizzle usually means hand-rolled scripts: manually
 ordering inserts to satisfy foreign keys, juggling returned ids to wire up
 relationships, and looping to generate bulk fake data.
 
-`saat` brings back the ergonomics of structured fixtures — named references and
+`drizzle-saat` brings back the ergonomics of structured fixtures — named references and
 helpers — native to TypeScript and Drizzle, with full type inference from your
 schema. Authoring feels as easy as writing YAML, with the safety and
 autocomplete of TypeScript.
 
-> **saat is a dev/test tool.** It generates throwaway, high-volume, fake data
+> **drizzle-saat is a dev/test tool.** It generates throwaway, high-volume, fake data
 > for local development and automated tests, and does wipe-and-reseed. It is
 > **not** for production. Production reference data is migration-shaped and
 > belongs in your migration pipeline.
+
+## Why this exists
+
+I went looking for a way to seed a whole, realistic database with Drizzle and
+expected it to be a solved problem — surely filling an interconnected schema is
+no harder than describing it. It wasn't.
+
+Drizzle ships [`drizzle-seed`](https://orm.drizzle.team/docs/seed-overview), an
+official helper that fills tables with random values inferred from each column's
+type. That's genuinely useful for "throw a thousand plausible rows at one
+table." But a real database isn't one table — it's a graph: users own posts,
+posts have comments, an order points at both a customer and its line items,
+tenancy scopes everything. Once the graph shows up, the gaps do too:
+
+- **You still order the inserts yourself** so foreign keys resolve in the right
+  sequence — the tool doesn't work the dependencies out for you.
+- **Foreign keys get *a* value, not *a relationship*.** There's no first-class
+  way to say "point this at a specific user," "a random one," or "the one
+  matched by this field" — you get random ids you can't reason about afterward.
+- **Rows can't be named.** You can't tag "the admin user" or "the checkout
+  order" and reference it from another fixture.
+- **It doesn't scale across files.** As the schema grows and fixtures split up,
+  you end up manually threading returned ids between them.
+- **Exact and bulk data don't mix cleanly.** Pinning a handful of hand-written
+  rows alongside thousands of generated ones is awkward.
+
+So `drizzle-saat` makes the *relationships* the primary thing. You declare named
+rows and `ref()`s; the tool builds a dependency graph, topologically orders the
+inserts, resolves every reference to a freshly-inserted id, and runs the whole
+thing deterministically inside a single transaction.
+
+## The name
+
+**_Saat_** (German, pronounced roughly "zaht") means **seed** — specifically the
+seed-grain you sow and the act of sowing it, from the verb _säen_, "to sow."
+Seeding a database is the same gesture: you scatter the starting data a fresh
+schema needs before anything can grow on top of it. `drizzle-saat` is that idea,
+made native to Drizzle — and the name keeps the link to `drizzle-seed` and the
+wider Drizzle ecosystem explicit.
 
 ## Features
 
@@ -42,30 +81,30 @@ autocomplete of TypeScript.
 ## Install
 
 ```bash
-bun add -D saat        # or: npm i -D saat / pnpm add -D saat
+bun add -D drizzle-saat        # or: npm i -D drizzle-saat / pnpm add -D drizzle-saat
 ```
 
-`saat` reuses your existing Drizzle setup. It reads your **`drizzle.config.ts`**
+`drizzle-saat` reuses your existing Drizzle setup. It reads your **`drizzle.config.ts`**
 for the dialect, connection, and schema path — no duplication.
 
 ## Quick start
 
-**1. Add `saat`-specific config** (optional) in `saat.config.ts`:
+**1. Add `drizzle-saat`-specific config** (optional) in `drizzle-saat.config.ts`:
 
 ```ts
-import { defineConfig } from 'saat'
+import { defineConfig } from 'drizzle-saat'
 
 export default defineConfig({
-  fixtures: 'saat',   // fixture directory (default)
+  fixtures: 'drizzle-saat',   // fixture directory (default)
   seed: 1,            // default RNG seed
 })
 ```
 
-**2. Write fixtures** in `saat/`:
+**2. Write fixtures** in `drizzle-saat/`:
 
 ```ts
-// saat/users.ts
-import { defineFixture, faker, ref } from 'saat'
+// drizzle-saat/users.ts
+import { defineFixture, faker, ref } from 'drizzle-saat'
 import { users, posts } from '../db/schema'
 
 export default defineFixture({
@@ -104,13 +143,13 @@ export default defineFixture({
 **3. Seed:**
 
 ```bash
-bunx saat            # reset → resolve refs → topo-order → insert, in one transaction
+bunx drizzle-saat            # reset → resolve refs → topo-order → insert, in one transaction
 ```
 
 Add it to `package.json`:
 
 ```json
-{ "scripts": { "seed": "saat" } }
+{ "scripts": { "seed": "drizzle-saat" } }
 ```
 
 ## Examples
@@ -124,7 +163,7 @@ the output is byte-identical for a fixed seed:
 - [saas-multitenant](./examples/saas-multitenant) — tenant scoping + a composite-PK join table
 - [social-network](./examples/social-network) — 8 namespaces, nested refs in JSON, threaded comments
 - [analytics-events](./examples/analytics-events) — `--scenario` datasets and high volume
-- [testing-with-saat](./examples/testing-with-saat) — deterministic fixtures in a test suite
+- [testing-with-drizzle-saat](./examples/testing-with-drizzle-saat) — deterministic fixtures in a test suite
 
 ## References
 
@@ -144,7 +183,7 @@ slice vs. the full dataset) — about *which dev/test situation* you want, not
 environments. Tag a fixture or seed with `scenario`, then:
 
 ```bash
-saat --scenario checkout-flow
+drizzle-saat --scenario checkout-flow
 ```
 
 Seeds without a scenario are always part of the run; `--scenario X` adds the
@@ -154,16 +193,16 @@ seeds tagged `X` on top.
 
 | Command / flag             | Behavior                                                                 |
 | -------------------------- | ------------------------------------------------------------------------ |
-| `saat`                     | Run the seeder (regenerates types first), in one transaction.            |
-| `saat --scenario <name>`   | Run the default seeds plus the named scenario.                           |
-| `saat --seed <n>`          | Override the RNG seed for this run.                                       |
-| `saat --dry-run`           | Resolve and order everything; report what *would* be inserted. No writes.|
-| `saat --watch`             | Regenerate types as fixtures change.                                     |
-| `saat generate`            | (Re)generate the namespace type definitions.                             |
+| `drizzle-saat`                     | Run the seeder (regenerates types first), in one transaction.            |
+| `drizzle-saat --scenario <name>`   | Run the default seeds plus the named scenario.                           |
+| `drizzle-saat --seed <n>`          | Override the RNG seed for this run.                                       |
+| `drizzle-saat --dry-run`           | Resolve and order everything; report what *would* be inserted. No writes.|
+| `drizzle-saat --watch`             | Regenerate types as fixtures change.                                     |
+| `drizzle-saat generate`            | (Re)generate the namespace type definitions.                             |
 
 ## Type safety
 
-saat is built to make wrong fixtures a **compile error**, not a runtime surprise:
+drizzle-saat is built to make wrong fixtures a **compile error**, not a runtime surprise:
 
 - **Row shapes are inferred from your Drizzle table.** Inside `defineFixture`,
   each seed's `data()` is checked against its `table` — a wrong column type or a
@@ -188,23 +227,23 @@ saat is built to make wrong fixtures a **compile error**, not a runtime surprise
 
 ### Codegen
 
-For cross-file ref types, `saat` scans your fixtures and generates
-`.saat/types.d.ts` — mapping each namespace to its row type, primary-key type,
+For cross-file ref types, `drizzle-saat` scans your fixtures and generates
+`.drizzle-saat/types.d.ts` — mapping each namespace to its row type, primary-key type,
 and the set of keyed-row keys. It runs automatically before every seed run (and
-`saat generate --watch` during development), so types are never stale.
+`drizzle-saat generate --watch` during development), so types are never stale.
 
-The generated file augments the `saat` module, so TypeScript only picks it up if
+The generated file augments the `drizzle-saat` module, so TypeScript only picks it up if
 it is part of your project's compilation. Add the **file** to your `tsconfig.json`
 `include`:
 
 ```jsonc
-{ "include": ["src", ".saat/types.d.ts"] }
+{ "include": ["src", ".drizzle-saat/types.d.ts"] }
 ```
 
 > ⚠️ List the file explicitly, not the directory. TypeScript's `include` globs
-> skip dot-directories, so `".saat"` on its own matches nothing and the types are
+> skip dot-directories, so `".drizzle-saat"` on its own matches nothing and the types are
 > silently ignored. (Or set `typesOut` to a non-dot path already covered by
-> `include`, e.g. `"src/saat-env.d.ts"`.)
+> `include`, e.g. `"src/drizzle-saat-env.d.ts"`.)
 
 > One inference limitation: a *missing* required column in keyed `rows` (as
 > opposed to `data()`) isn't caught — TypeScript doesn't check object literals in
@@ -222,13 +261,13 @@ it is part of your project's compilation. Add the **file** to your `tsconfig.jso
 
 ## Caveats
 
-- **saat only manages tables that have fixtures.** It truncates and seeds the
+- **drizzle-saat only manages tables that have fixtures.** It truncates and seeds the
   tables backing your namespaces; tables you don't write fixtures for are left
   untouched (and won't be wiped between runs).
 - **Postgres truncation uses `TRUNCATE … RESTART IDENTITY CASCADE`.** `CASCADE`
   can also remove rows from *other* tables that hold foreign keys into the
   seeded tables, even if those tables aren't part of your fixtures. This is
-  expected for a wipe-and-reseed dev/test tool — just don't point `saat` at a
+  expected for a wipe-and-reseed dev/test tool — just don't point `drizzle-saat` at a
   database whose other tables you care about (and never at production).
 - **References resolve to a single primary-key value.** A table with a
   composite primary key can be seeded, but cannot be the *target* of a `ref()`.

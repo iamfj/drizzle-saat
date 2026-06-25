@@ -1,5 +1,5 @@
 <!--
-Thanks for contributing to saat! Please fill out the sections below.
+Thanks for contributing to drizzle-saat! Please fill out the sections below.
 See CONTRIBUTING.md for the full workflow.
 -->
 

@@ -60,9 +60,9 @@ function makeProject() {
   return writeProject({
     "db/schema.ts": SCHEMA,
     "drizzle.config.ts": DRIZZLE_CONFIG,
-    "saat.config.ts": "export default { seed: 42 };",
-    "saat/users.ts": usersFixture,
-    "saat/posts.ts": postsFixture,
+    "drizzle-saat.config.ts": "export default { seed: 42 };",
+    "drizzle-saat/users.ts": usersFixture,
+    "drizzle-saat/posts.ts": postsFixture,
   });
 }
 
@@ -186,13 +186,13 @@ describe("sqlite e2e", () => {
     const chunkCwd = writeProject({
       "db/schema.ts": SCHEMA,
       "drizzle.config.ts": DRIZZLE_CONFIG,
-      "saat.config.ts": "export default { seed: 1, chunkSize: 7 };",
-      "saat/users.ts": `import { defineFixture } from ${JSON.stringify(SAAT_SRC)};
+      "drizzle-saat.config.ts": "export default { seed: 1, chunkSize: 7 };",
+      "drizzle-saat/users.ts": `import { defineFixture } from ${JSON.stringify(SAAT_SRC)};
 import { users } from "../db/schema";
 const rows = {};
 for (let i = 0; i < 20; i++) rows["u" + i] = { firstName: "U" + i, email: "u" + i + "@x.com" };
 export default defineFixture({ seeds: [{ table: users, namespace: "user", rows }] });`,
-      "saat/posts.ts": `import { defineFixture, ref } from ${JSON.stringify(SAAT_SRC)};
+      "drizzle-saat/posts.ts": `import { defineFixture, ref } from ${JSON.stringify(SAAT_SRC)};
 import { posts } from "../db/schema";
 export default defineFixture({ seeds: [{ table: posts, namespace: "post", rows: {
   first: { title: "first", authorId: ref("user", "u0") },
@@ -227,8 +227,8 @@ export default defineFixture({ seeds: [{ table: posts, namespace: "post", rows: 
     const badCwd = writeProject({
       "db/schema.ts": SCHEMA,
       "drizzle.config.ts": DRIZZLE_CONFIG,
-      "saat.config.ts": "export default { seed: 1 };",
-      "saat/bad.ts": `import { defineFixture } from ${JSON.stringify(SAAT_SRC)};
+      "drizzle-saat.config.ts": "export default { seed: 1 };",
+      "drizzle-saat/bad.ts": `import { defineFixture } from ${JSON.stringify(SAAT_SRC)};
 import { users } from "../db/schema";
 // Missing required \`firstName\` → SQLite NOT NULL violation on insert.
 export default defineFixture({ seeds: [{ table: users, namespace: "user", rows: {
@@ -252,8 +252,8 @@ export default defineFixture({ seeds: [{ table: users, namespace: "user", rows: 
     const brokenCwd = writeProject({
       "db/schema.ts": SCHEMA,
       "drizzle.config.ts": DRIZZLE_CONFIG,
-      "saat.config.ts": "export default { seed: 1 };",
-      "saat/posts.ts": `import { defineFixture, ref } from ${JSON.stringify(SAAT_SRC)};
+      "drizzle-saat.config.ts": "export default { seed: 1 };",
+      "drizzle-saat/posts.ts": `import { defineFixture, ref } from ${JSON.stringify(SAAT_SRC)};
 import { posts } from "../db/schema";
 export default defineFixture({ seeds: [{ table: posts, namespace: "post", count: 1,
   data: () => ({ title: "t", authorId: ref("ghost").random() }) }] });`,

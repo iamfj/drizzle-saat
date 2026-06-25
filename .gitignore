@@ -1,6 +1,6 @@
 node_modules
 dist
-.saat
+.drizzle-saat
 *.log
 .DS_Store
 coverage

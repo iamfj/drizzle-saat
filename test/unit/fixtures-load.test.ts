@@ -16,27 +16,27 @@ afterEach(() => {
 describe("loadFixtures", () => {
   test("loads fixtures in stable sorted order and skips .d.ts files", async () => {
     cwd = writeProject({
-      "saat/b.ts": FIX,
-      "saat/a.ts": FIX,
-      "saat/nested/c.ts": FIX,
-      "saat/types.d.ts": "export const x = 1;",
+      "drizzle-saat/b.ts": FIX,
+      "drizzle-saat/a.ts": FIX,
+      "drizzle-saat/nested/c.ts": FIX,
+      "drizzle-saat/types.d.ts": "export const x = 1;",
     });
-    const loaded = await loadFixtures(`${cwd}/saat`, createLoader());
-    const names = loaded.map((f) => f.file.replace(`${cwd}/saat/`, ""));
+    const loaded = await loadFixtures(`${cwd}/drizzle-saat`, createLoader());
+    const names = loaded.map((f) => f.file.replace(`${cwd}/drizzle-saat/`, ""));
     expect(names).toEqual(["a.ts", "b.ts", "nested/c.ts"]);
   });
 
   test("throws a pointed error when a file does not default-export a fixture", async () => {
-    cwd = writeProject({ "saat/bad.ts": "export default 42;" });
-    expect(loadFixtures(`${cwd}/saat`, createLoader())).rejects.toThrow(SaatError);
-    expect(loadFixtures(`${cwd}/saat`, createLoader())).rejects.toThrow(
+    cwd = writeProject({ "drizzle-saat/bad.ts": "export default 42;" });
+    expect(loadFixtures(`${cwd}/drizzle-saat`, createLoader())).rejects.toThrow(SaatError);
+    expect(loadFixtures(`${cwd}/drizzle-saat`, createLoader())).rejects.toThrow(
       /does not default-export a fixture/,
     );
   });
 
   test("returns an empty list for a directory with no fixtures", async () => {
-    cwd = writeProject({ "saat/.keep": "" });
-    const loaded = await loadFixtures(`${cwd}/saat`, createLoader());
+    cwd = writeProject({ "drizzle-saat/.keep": "" });
+    const loaded = await loadFixtures(`${cwd}/drizzle-saat`, createLoader());
     expect(loaded).toEqual([]);
   });
 });

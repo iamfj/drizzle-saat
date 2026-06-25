@@ -1,26 +1,26 @@
 import type { Dialect } from "../types.js";
 
-/** Shape of the user's `saat.config.ts` (or the `"saat"` key in package.json). */
+/** Shape of the user's `drizzle-saat.config.ts` (or the `"drizzle-saat"` key in package.json). */
 export interface SaatUserConfig {
-  /** Fixture directory, relative to project root. Default: `saat`. */
+  /** Fixture directory, relative to project root. Default: `drizzle-saat`. */
   fixtures?: string;
   /** Default RNG seed. Default: `1`. */
   seed?: number;
   /** Path to `drizzle.config.ts` if non-standard. Auto-discovered otherwise. */
   drizzleConfig?: string;
-  /** Output path for generated namespace types. Default: `.saat/types.d.ts`. */
+  /** Output path for generated namespace types. Default: `.drizzle-saat/types.d.ts`. */
   typesOut?: string;
   /** Override the per-dialect insert batch size. */
   chunkSize?: number;
 }
 
-/** Identity helper for type-safe `saat.config.ts` authoring. */
+/** Identity helper for type-safe `drizzle-saat.config.ts` authoring. */
 export function defineConfig(config: SaatUserConfig): SaatUserConfig {
   return config;
 }
 
 /**
- * The relevant slice of the user's `drizzle.config.ts`. Only the fields saat
+ * The relevant slice of the user's `drizzle.config.ts`. Only the fields drizzle-saat
  * needs; everything else is ignored.
  */
 export interface DrizzleConfigSlice {

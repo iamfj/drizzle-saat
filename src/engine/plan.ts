@@ -81,7 +81,7 @@ export function buildPlan(
       if (!info) {
         throw new SaatError(
           `namespace "${namespace}" (${file}) binds a table that is not exported from your ` +
-            "drizzle schema. saat can only seed tables it can introspect.",
+            "drizzle schema. drizzle-saat can only seed tables it can introspect.",
         );
       }
 

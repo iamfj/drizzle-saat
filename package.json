@@ -1,5 +1,5 @@
 {
-  "name": "saat",
+  "name": "drizzle-saat",
   "version": "0.1.0",
   "description": "TypeScript-native, type-safe database seeding for Drizzle ORM — fixtures as easy as YAML.",
   "keywords": [
@@ -17,13 +17,13 @@
   ],
   "license": "MIT",
   "author": "Fabian Jocks <fabian@jocks.io>",
-  "homepage": "https://github.com/iamfj/saat#readme",
+  "homepage": "https://github.com/iamfj/drizzle-saat#readme",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/iamfj/saat.git"
+    "url": "git+https://github.com/iamfj/drizzle-saat.git"
   },
   "bugs": {
-    "url": "https://github.com/iamfj/saat/issues"
+    "url": "https://github.com/iamfj/drizzle-saat/issues"
   },
   "type": "module",
   "main": "./dist/index.cjs",
@@ -43,7 +43,7 @@
     "./package.json": "./package.json"
   },
   "bin": {
-    "saat": "./dist/cli.js"
+    "drizzle-saat": "./dist/cli.js"
   },
   "files": [
     "dist/**/*.js",

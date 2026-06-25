@@ -9,6 +9,6 @@
     "types": []
   },
   // Generated types listed explicitly — TS `include` globs skip dot-dirs, so
-  // ".saat" alone would match nothing. Run `bun run gen` first to create it.
-  "include": ["saat", "db", ".saat/types.d.ts"]
+  // ".drizzle-saat" alone would match nothing. Run `bun run gen` first to create it.
+  "include": ["drizzle-saat", "db", ".drizzle-saat/types.d.ts"]
 }

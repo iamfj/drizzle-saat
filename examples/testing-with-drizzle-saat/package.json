@@ -1,0 +1,21 @@
+{
+  "name": "drizzle-saat-example-testing-with-drizzle-saat",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "gen": "drizzle-saat generate",
+    "typecheck": "drizzle-saat generate && tsc --noEmit",
+    "test": "bun test",
+    "seed": "bun seed.ts",
+    "verify": "bun seed.ts --verify",
+    "reset": "rm -rf dev.db .drizzle-saat",
+    "postinstall": "drizzle-saat generate"
+  },
+  "dependencies": {
+    "drizzle-saat": "file:../..",
+    "drizzle-orm": "^0.38.3"
+  },
+  "devDependencies": {
+    "typescript": "^5.7.3"
+  }
+}

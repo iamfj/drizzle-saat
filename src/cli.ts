@@ -9,7 +9,7 @@ import { SaatError } from "./util/errors.js";
 import { log } from "./util/log.js";
 import { type Watcher, watchFixtures } from "./watch.js";
 
-const cli = cac("saat");
+const cli = cac("drizzle-saat");
 
 interface CommonOptions {
   config?: string;
@@ -84,7 +84,7 @@ cli
   .option("--seed <n>", "Override the RNG seed for this run")
   .option("--dry-run", "Resolve and order everything without writing")
   .option("--watch", "Regenerate types as fixtures change (does not seed)")
-  .option("--config <path>", "Path to saat.config.ts")
+  .option("--config <path>", "Path to drizzle-saat.config.ts")
   .action(
     async (
       options: CommonOptions & {
@@ -124,11 +124,11 @@ cli
       }),
   );
 
-// `saat generate`: only (re)generate types.
+// `drizzle-saat generate`: only (re)generate types.
 cli
   .command("generate", "(Re)generate the namespace type definitions")
   .option("--watch", "Keep regenerating as fixtures change")
-  .option("--config <path>", "Path to saat.config.ts")
+  .option("--config <path>", "Path to drizzle-saat.config.ts")
   .action(async (options: CommonOptions & { watch?: boolean }) =>
     run(async () => {
       const config = await resolveConfig({ configPath: options.config });

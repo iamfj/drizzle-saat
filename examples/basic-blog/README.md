@@ -1,13 +1,13 @@
 # basic-blog (small)
 
-The smallest useful saat setup: **two tables, one foreign key**.
+The smallest useful drizzle-saat setup: **two tables, one foreign key**.
 
-`saat/blog.ts` — ~25 lines — produces **26 users** (25 random + one fixed `admin`
+`drizzle-saat/blog.ts` — ~25 lines — produces **26 users** (25 random + one fixed `admin`
 you can reference by key) and **100 posts**, each attributed to a random user
 with a valid foreign key. Same seed → same data, every time.
 
 ```ts
-// saat/blog.ts (excerpt)
+// drizzle-saat/blog.ts (excerpt)
 {
   table: posts, namespace: "post", count: 100,
   data: () => ({
@@ -42,11 +42,11 @@ native setup. In your own project you don't write a runner at all — you point
 `drizzle.config.ts` at your real database and run the CLI:
 
 ```bash
-npx saat            # reset → resolve refs → topo-order → insert, one transaction
-npx saat --seed 7   # same fixtures, a different reproducible dataset
+npx drizzle-saat            # reset → resolve refs → topo-order → insert, one transaction
+npx drizzle-saat --seed 7   # same fixtures, a different reproducible dataset
 ```
 
-The fixtures in `saat/` are identical in both cases. Swap `dialect: "sqlite"`
+The fixtures in `drizzle-saat/` are identical in both cases. Swap `dialect: "sqlite"`
 for `"postgresql"` or `"mysql"` in `drizzle.config.ts` and nothing else changes.
 
 ## Concepts shown

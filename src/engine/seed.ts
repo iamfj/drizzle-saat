@@ -10,7 +10,7 @@ import { ResolvedStore } from "./resolve.js";
 
 export interface SeedOptions {
   cwd?: string;
-  /** Explicit saat config path (CLI `--config`). */
+  /** Explicit drizzle-saat config path (CLI `--config`). */
   configPath?: string;
   /** Run only the named scenario (plus scenario-less seeds). */
   scenario?: string;

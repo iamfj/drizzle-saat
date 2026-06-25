@@ -9,7 +9,7 @@ import { resolve } from "node:path";
  * `src/` — a single shared module — so they cannot catch a regression where the
  * `cli` and `index` bundles each carry their own faker state (the D1 release
  * blocker). This test runs the compiled CLI (`dist/cli.js`, the engine bundle)
- * against the example whose fixtures `import { faker } from "saat"` (the `index`
+ * against the example whose fixtures `import { faker } from "drizzle-saat"` (the `index`
  * bundle), exercising the real cross-bundle path.
  *
  * Requires `bun run build` first; skips otherwise (and `bun test` alone).
@@ -19,7 +19,7 @@ const CLI = resolve(REPO, "dist/cli.js");
 // A self-owned fixture project (not examples/, which are user-facing docs).
 const EXAMPLE = resolve(REPO, "test/e2e/cli-project");
 const DB = resolve(EXAMPLE, "dev.db");
-const SAAT_LINK = resolve(REPO, "node_modules/saat");
+const SAAT_LINK = resolve(REPO, "node_modules/drizzle-saat");
 const RUN = existsSync(CLI);
 
 function createTables() {
@@ -55,7 +55,7 @@ beforeAll(() => {
 afterAll(() => {
   if (!RUN) return;
   rmSync(DB, { force: true });
-  rmSync(resolve(EXAMPLE, ".saat"), { recursive: true, force: true });
+  rmSync(resolve(EXAMPLE, ".drizzle-saat"), { recursive: true, force: true });
   try {
     unlinkSync(SAAT_LINK);
   } catch {

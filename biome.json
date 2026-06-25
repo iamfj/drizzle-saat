@@ -6,7 +6,7 @@
     "useIgnoreFile": true
   },
   "files": {
-    "ignore": ["dist", "node_modules", ".saat", "test/fixtures-tmp", "test/types"]
+    "ignore": ["dist", "node_modules", ".drizzle-saat", "test/fixtures-tmp", "test/types"]
   },
   "formatter": {
     "enabled": true,

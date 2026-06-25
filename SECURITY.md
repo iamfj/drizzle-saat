@@ -2,7 +2,7 @@
 
 ## Supported Versions
 
-`saat` is pre-1.0. Security fixes are applied to the latest published release on
+`drizzle-saat` is pre-1.0. Security fixes are applied to the latest published release on
 the `main` branch.
 
 | Version | Supported          |
@@ -15,7 +15,7 @@ the `main` branch.
 Please **do not** open a public issue for security vulnerabilities.
 
 Instead, report them privately via GitHub's
-[private vulnerability reporting](https://github.com/iamfj/saat/security/advisories/new),
+[private vulnerability reporting](https://github.com/iamfj/drizzle-saat/security/advisories/new),
 or by email to **fabian@jocks.io**.
 
 Include as much detail as you can:
@@ -30,7 +30,7 @@ acknowledged in the release notes (unless you prefer to remain anonymous).
 
 ## Scope
 
-`saat` is a development and testing tool that generates throwaway fake data and
+`drizzle-saat` is a development and testing tool that generates throwaway fake data and
 performs wipe-and-reseed operations. It is **not** intended for production use.
 Keep this in mind when assessing impact — never point it at a production
 database.

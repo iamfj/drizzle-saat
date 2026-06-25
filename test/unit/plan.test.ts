@@ -55,7 +55,7 @@ function schemaMap(): Map<Table, SchemaEntry> {
 }
 
 function fixture(seeds: any[], scenario?: string): LoadedFixture {
-  return { file: "/saat/test.ts", fixture: { scenario, seeds } };
+  return { file: "/drizzle-saat/test.ts", fixture: { scenario, seeds } };
 }
 
 describe("buildPlan", () => {

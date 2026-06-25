@@ -41,7 +41,7 @@ describe("generateTypes", () => {
     cwd = writeProject({
       "db/schema.ts": SCHEMA,
       "drizzle.config.ts": DRIZZLE_CONFIG,
-      "saat/fixtures.ts": fixture,
+      "drizzle-saat/fixtures.ts": fixture,
     });
     const config = await resolveConfig({ cwd });
     const result = await generateTypes(config);
@@ -49,7 +49,7 @@ describe("generateTypes", () => {
     expect(result.namespaces.sort()).toEqual(["post", "user"]);
     const out = readFileSync(result.path, "utf8");
 
-    expect(out).toContain('declare module "saat"');
+    expect(out).toContain('declare module "drizzle-saat"');
     expect(out).toContain("interface SaatNamespaces");
     expect(out).toContain('import type { InferSelectModel } from "drizzle-orm";');
     // One import alias for the single shared schema file.
@@ -75,7 +75,7 @@ describe("generateTypes", () => {
     cwd = writeProject({
       "db/schema.ts": SCHEMA,
       "drizzle.config.ts": DRIZZLE_CONFIG,
-      "saat/.keep": "",
+      "drizzle-saat/.keep": "",
     });
     const config = await resolveConfig({ cwd });
     expect(generateTypes(config)).rejects.toThrow(SaatError);
@@ -94,7 +94,7 @@ export const membership = sqliteTable("membership", {
   groupId: integer("group_id").notNull(),
 }, (t) => [primaryKey({ columns: [t.userId, t.groupId] })]);`,
       "drizzle.config.ts": `export default { dialect: "sqlite", schema: "./db", dbCredentials: { url: ":memory:" } };`,
-      "saat/fixtures.ts": `import { defineFixture } from ${JSON.stringify(SAAT_SRC)};
+      "drizzle-saat/fixtures.ts": `import { defineFixture } from ${JSON.stringify(SAAT_SRC)};
 import { users } from "../db/a";
 import { membership } from "../db/b";
 export default defineFixture({ seeds: [

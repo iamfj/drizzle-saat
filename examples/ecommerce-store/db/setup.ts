@@ -1,5 +1,5 @@
 // Raw DDL so the example is self-contained. In a real project these tables come
-// from `drizzle-kit push` / migrations; the saat fixtures are identical either way.
+// from `drizzle-kit push` / migrations; the drizzle-saat fixtures are identical either way.
 export const DDL = `
   PRAGMA foreign_keys = ON;
   CREATE TABLE IF NOT EXISTS customers (

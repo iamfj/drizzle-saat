@@ -1,5 +1,5 @@
 name: Feature request
-description: Suggest an idea or improvement for saat
+description: Suggest an idea or improvement for drizzle-saat
 labels: ["enhancement"]
 body:
   - type: textarea
@@ -13,7 +13,7 @@ body:
     id: proposal
     attributes:
       label: Proposed solution
-      description: What would you like saat to do? An API sketch is welcome.
+      description: What would you like drizzle-saat to do? An API sketch is welcome.
     validations:
       required: true
   - type: textarea

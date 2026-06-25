@@ -1,16 +1,21 @@
-# Contributing to saat
+# Contributing to drizzle-saat
 
-Thanks for your interest in improving `saat`! This project uses
+Thanks for your interest in improving `drizzle-saat`! This project uses
 [Bun](https://bun.sh) as its package manager and test runner.
 
 By participating, you agree to abide by our
 [Code of Conduct](./CODE_OF_CONDUCT.md).
 
+> **Using an AI coding agent?** See [AGENTS.md](./AGENTS.md) for the
+> machine-readable build/test/style conventions (Claude Code reads it via
+> [CLAUDE.md](./CLAUDE.md); Copilot via `.github/copilot-instructions.md`).
+> Note: AI tools must **not** add themselves as commit co-authors.
+
 ## Getting started
 
 ```bash
-git clone https://github.com/iamfj/saat.git
-cd saat
+git clone https://github.com/iamfj/drizzle-saat.git
+cd drizzle-saat
 bun install
 ```
 

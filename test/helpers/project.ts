@@ -2,7 +2,7 @@ import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { dirname, join, resolve } from "node:path";
 
 /**
- * Absolute path to saat's source entry. Temp-project fixtures import from here
+ * Absolute path to drizzle-saat's source entry. Temp-project fixtures import from here
  * so they share the exact module instance the engine loads (ref markers,
  * `setActiveFaker`, and Table identity all line up across the jiti boundary).
  */

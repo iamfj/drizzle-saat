@@ -24,15 +24,15 @@ export const posts = sqliteTable("posts", {
     .notNull()
     .references(() => users.id),
   body: text("body").notNull(),
-  // JSON column — saat resolves refs nested *inside* it (see `pinnedBy`).
+  // JSON column — drizzle-saat resolves refs nested *inside* it (see `pinnedBy`).
   metadata: text("metadata", { mode: "json" }).notNull(),
   createdAt: text("created_at").notNull(),
 });
 
 // Threaded comments. `parentId` points at another comment for replies. We keep
-// it a soft reference (no Drizzle `.references()`) and let a saat `ref("comment")`
+// it a soft reference (no Drizzle `.references()`) and let a drizzle-saat `ref("comment")`
 // drive ordering: a *declared* self-FK on a table that has two namespaces
-// (`comment` + `reply`) would make saat's FK ordering see a false cycle. The DB
+// (`comment` + `reply`) would make drizzle-saat's FK ordering see a false cycle. The DB
 // still enforces the FK via the DDL constraint.
 export const comments = sqliteTable("comments", {
   id: integer("id").primaryKey({ autoIncrement: true }),

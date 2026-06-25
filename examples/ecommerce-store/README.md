@@ -1,10 +1,10 @@
 # ecommerce-store (mid)
 
 A four-table store with a real foreign-key chain:
-**customers → orders → order_items ← products**. saat topologically orders the
+**customers → orders → order_items ← products**. drizzle-saat topologically orders the
 inserts for you, so parents always exist before the rows that reference them.
 
-Two fixture files (`saat/catalog.ts`, `saat/orders.ts`) — ~70 lines total —
+Two fixture files (`drizzle-saat/catalog.ts`, `drizzle-saat/orders.ts`) — ~70 lines total —
 produce ~350 rows: customers, a product catalog, 80+ orders, and 200 line items,
 all with valid foreign keys.
 

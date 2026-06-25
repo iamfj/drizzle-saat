@@ -40,4 +40,4 @@ scenario=e2e    → workspaces=4 users=13 events=52
   `workspace`/`user` namespaces; you don't redefine them.
 - **JSON `properties`** generated per event.
 
-With the real CLI this is just `npx saat`, `npx saat --scenario load`, etc.
+With the real CLI this is just `npx drizzle-saat`, `npx drizzle-saat --scenario load`, etc.

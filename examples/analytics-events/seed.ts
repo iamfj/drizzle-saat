@@ -1,4 +1,4 @@
-// Demonstrates saat scenarios + seed reproducibility.
+// Demonstrates drizzle-saat scenarios + seed reproducibility.
 //
 //   bun run seed                 # base dataset only (scenario-less)
 //   bun run seed -- --scenario load   # base + 5,000 load-test events
@@ -8,7 +8,7 @@
 // Bare run seeds scenario-less fixtures; `--scenario X` ADDS the X-tagged ones.
 import { Database } from "bun:sqlite";
 import { drizzle } from "drizzle-orm/bun-sqlite";
-import { seed } from "saat";
+import { seed } from "drizzle-saat";
 import { DDL } from "./db/setup";
 
 const SEED = 42;

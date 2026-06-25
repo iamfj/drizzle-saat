@@ -1,6 +1,6 @@
 import type { Table } from "drizzle-orm";
 
-/** The three SQL dialects saat supports in v1. */
+/** The three SQL dialects drizzle-saat supports in v1. */
 export type Dialect = "postgresql" | "mysql" | "sqlite";
 
 /** A single column's introspected metadata, dialect-normalized. */

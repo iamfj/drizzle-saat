@@ -13,16 +13,16 @@ const paint = (fn: (s: string) => string, s: string) => (useColor ? fn(s) : s);
 
 export const log = {
   info(msg: string): void {
-    console.log(`${paint(colors.cyan, "saat")} ${msg}`);
+    console.log(`${paint(colors.cyan, "drizzle-saat")} ${msg}`);
   },
   success(msg: string): void {
-    console.log(`${paint(colors.green, "saat")} ${msg}`);
+    console.log(`${paint(colors.green, "drizzle-saat")} ${msg}`);
   },
   warn(msg: string): void {
-    console.warn(`${paint(colors.yellow, "saat")} ${msg}`);
+    console.warn(`${paint(colors.yellow, "drizzle-saat")} ${msg}`);
   },
   error(msg: string): void {
-    console.error(`${paint(colors.red, "saat")} ${msg}`);
+    console.error(`${paint(colors.red, "drizzle-saat")} ${msg}`);
   },
   step(msg: string): void {
     console.log(paint(colors.dim, `  ${msg}`));

@@ -1,7 +1,7 @@
 import { Faker, type Faker as FakerType, base, en } from "@faker-js/faker";
 
 /**
- * Public `faker` helper. Re-exported from `saat` so fixtures can write
+ * Public `faker` helper. Re-exported from `drizzle-saat` so fixtures can write
  * `faker.person.firstName()` directly. It is a live proxy that forwards to the
  * Faker instance owned by the active seeding run, so faker output is
  * deterministic under the run's seed. Outside a run it falls back to an
@@ -11,12 +11,12 @@ import { Faker, type Faker as FakerType, base, en } from "@faker-js/faker";
  * Symbol) rather than module-local state. This is essential: the build emits
  * separate `cli` and `index` bundles, each with its own copy of this module.
  * The engine (cli bundle) calls `setActiveFaker`, while fixtures `import
- * { faker } from "saat"` resolve to the index bundle's copy — a module-local
+ * { faker } from "drizzle-saat"` resolve to the index bundle's copy — a module-local
  * `active` would never reach them and faker output would silently de-seed.
- * Mirrors the `Symbol.for("saat.ref")` marker used for references.
+ * Mirrors the `Symbol.for("drizzle-saat.ref")` marker used for references.
  */
 
-const ACTIVE_FAKER = Symbol.for("saat.activeFaker");
+const ACTIVE_FAKER = Symbol.for("drizzle-saat.activeFaker");
 const fallback = new Faker({ locale: [en, base] });
 
 interface FakerGlobal {

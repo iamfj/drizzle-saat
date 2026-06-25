@@ -27,8 +27,8 @@ afterEach(async () => {
 
 describe("watchFixtures", () => {
   test("fires on ready and on fixture edits, ignores generated .d.ts, stops on close", async () => {
-    cwd = writeProject({ "saat/a.ts": "export default { seeds: [] };" });
-    const dir = join(cwd, "saat");
+    cwd = writeProject({ "drizzle-saat/a.ts": "export default { seeds: [] };" });
+    const dir = join(cwd, "drizzle-saat");
     let calls = 0;
     const config = { fixturesDir: dir, schemaPaths: [] } as unknown as ResolvedConfig;
     watcher = watchFixtures(config, () => {

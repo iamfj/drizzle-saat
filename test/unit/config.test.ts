@@ -56,47 +56,53 @@ describe("resolveConfig — dialect normalization", () => {
 });
 
 describe("resolveConfig — sources & validation", () => {
-  test('reads saat settings from the package.json "saat" key', async () => {
+  test('reads drizzle-saat settings from the package.json "drizzle-saat" key', async () => {
     cwd = writeProject({
       "db/schema.ts": SCHEMA,
       "drizzle.config.ts": drizzleConfig("sqlite"),
-      "package.json": JSON.stringify({ name: "tmp", saat: { seed: 99, fixtures: "seeds" } }),
+      "package.json": JSON.stringify({
+        name: "tmp",
+        "drizzle-saat": { seed: 99, fixtures: "seeds" },
+      }),
     });
     const config = await resolveConfig({ cwd });
     expect(config.seed).toBe(99);
     expect(config.fixturesDir.endsWith("/seeds")).toBe(true);
   });
 
-  test("saat.config.ts wins over the package.json key", async () => {
+  test("drizzle-saat.config.ts wins over the package.json key", async () => {
     cwd = writeProject({
       "db/schema.ts": SCHEMA,
       "drizzle.config.ts": drizzleConfig("sqlite"),
-      "saat.config.ts": "export default { seed: 7 };",
-      "package.json": JSON.stringify({ name: "tmp", saat: { seed: 99 } }),
+      "drizzle-saat.config.ts": "export default { seed: 7 };",
+      "package.json": JSON.stringify({ name: "tmp", "drizzle-saat": { seed: 99 } }),
     });
     const config = await resolveConfig({ cwd });
     expect(config.seed).toBe(7);
   });
 
-  test("saat.config.ts overlays package.json per-field (unset fields fall back)", async () => {
+  test("drizzle-saat.config.ts overlays package.json per-field (unset fields fall back)", async () => {
     // File sets only `seed`; `fixtures` should still come from package.json
     // rather than being wiped out by the file taking over entirely.
     cwd = writeProject({
       "db/schema.ts": SCHEMA,
       "drizzle.config.ts": drizzleConfig("sqlite"),
-      "saat.config.ts": "export default { seed: 7 };",
-      "package.json": JSON.stringify({ name: "tmp", saat: { seed: 99, fixtures: "seeds" } }),
+      "drizzle-saat.config.ts": "export default { seed: 7 };",
+      "package.json": JSON.stringify({
+        name: "tmp",
+        "drizzle-saat": { seed: 99, fixtures: "seeds" },
+      }),
     });
     const config = await resolveConfig({ cwd });
     expect(config.seed).toBe(7); // file overrides
     expect(config.fixturesDir.endsWith("/seeds")).toBe(true); // package.json fills the gap
   });
 
-  test("throws a clean error when saat.config exports a non-object", async () => {
+  test("throws a clean error when drizzle-saat.config exports a non-object", async () => {
     cwd = writeProject({
       "db/schema.ts": SCHEMA,
       "drizzle.config.ts": drizzleConfig("sqlite"),
-      "saat.config.ts": "export default 42;",
+      "drizzle-saat.config.ts": "export default 42;",
     });
     expect(resolveConfig({ cwd })).rejects.toThrow(/did not export a config object/);
   });
@@ -120,8 +126,8 @@ describe("resolveConfig — sources & validation", () => {
     });
     const config = await resolveConfig({ cwd });
     expect(config.seed).toBe(1);
-    expect(config.fixturesDir.endsWith("/saat")).toBe(true);
-    expect(config.typesOut.endsWith("/.saat/types.d.ts")).toBe(true);
+    expect(config.fixturesDir.endsWith("/drizzle-saat")).toBe(true);
+    expect(config.typesOut.endsWith("/.drizzle-saat/types.d.ts")).toBe(true);
     expect(config.schemaPaths).toHaveLength(1);
   });
 });

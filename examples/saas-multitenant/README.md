@@ -5,7 +5,7 @@ A multi-tenant SaaS: **organizations** own **users** and **projects**;
 **invitations** track pending access. Five tables, every tenant-scoped row
 wired through a ref.
 
-Two fixture files (`saat/tenants.ts`, `saat/access.ts`) — ~80 lines — produce a
+Two fixture files (`drizzle-saat/tenants.ts`, `drizzle-saat/access.ts`) — ~80 lines — produce a
 coherent multi-tenant dataset where every user, project, invitation, and
 membership belongs to a real organization.
 
@@ -32,7 +32,7 @@ bun run verify
 - **Tenant scoping** — every `user`/`project`/`invitation` references an `org`,
   so the whole graph stays within valid tenants.
 - **Composite primary key** — `memberships` is keyed on `(user_id, project_id)`.
-  saat introspects the composite PK and inserts it correctly.
+  drizzle-saat introspects the composite PK and inserts it correctly.
 - **Many-to-many done cleanly** — join rows are seeded as explicit keyed `rows`
   so each `(user, project)` pair is unique and deterministic. (Random
   many-to-many would risk duplicate composite keys; keyed rows avoid that.)

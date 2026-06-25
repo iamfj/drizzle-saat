@@ -1,9 +1,9 @@
 /**
- * saat — TypeScript-native, type-safe database seeding for Drizzle ORM.
+ * drizzle-saat — TypeScript-native, type-safe database seeding for Drizzle ORM.
  *
  * Public API surface. Fixtures import from here:
  *
- *   import { defineFixture, faker, ref } from 'saat'
+ *   import { defineFixture, faker, ref } from 'drizzle-saat'
  */
 
 export { defineFixture, defineSeed } from "./fixtures/define.js";

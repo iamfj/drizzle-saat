@@ -1,4 +1,4 @@
-/** Base error for all user-facing saat failures. Carries a clean message. */
+/** Base error for all user-facing drizzle-saat failures. Carries a clean message. */
 export class SaatError extends Error {
   constructor(message: string) {
     super(message);

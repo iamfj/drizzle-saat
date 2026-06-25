@@ -8,7 +8,7 @@
  */
 
 /** Unique marker so the engine can distinguish refs from real column values. */
-export const REF_MARKER = Symbol.for("saat.ref");
+export const REF_MARKER = Symbol.for("drizzle-saat.ref");
 
 /** Phantom key carrying the value type a ref resolves to (type-level only). */
 declare const REF_VALUE: unique symbol;
@@ -71,7 +71,7 @@ function makeRef<V>(ref: {
 
 /**
  * Global registry of fixture namespaces and their row shapes. Codegen augments
- * this interface (via `declare module 'saat'`) so that `ref()` namespace
+ * this interface (via `declare module 'drizzle-saat'`) so that `ref()` namespace
  * arguments and `.where()` predicates are type-checked and autocompleted across
  * files. Empty by default; falls back to permissive types before first codegen.
  */
@@ -82,7 +82,7 @@ export interface SaatNamespaces {}
  * Per-namespace primary-key value type (e.g. `{ user: number }`). Codegen
  * augments this so a `ref('user')` is typed as the id it resolves to, and only
  * fits columns of a matching type. Empty by default → refs are permissive (`any`)
- * until the first `saat generate`.
+ * until the first `drizzle-saat generate`.
  */
 // biome-ignore lint/suspicious/noEmptyInterface: augmented by generated .d.ts
 export interface SaatRefValues {}
@@ -90,7 +90,7 @@ export interface SaatRefValues {}
 /**
  * Per-namespace union of keyed-row keys (e.g. `{ user: "alice" | "john" }`).
  * Codegen augments this so `ref(ns, key)` validates the key. Empty by default →
- * keys fall back to `string` (any key) before the first `saat generate`, and for
+ * keys fall back to `string` (any key) before the first `drizzle-saat generate`, and for
  * namespaces that define no keyed `rows`.
  */
 // biome-ignore lint/suspicious/noEmptyInterface: augmented by generated .d.ts
@@ -117,7 +117,7 @@ export interface RefBuilder<K extends NamespaceName> {
  * Reference another seeded row's id.
  *
  * The returned `Ref<V>` carries the target's primary-key type, so it only
- * type-checks into a column of a compatible type (once `saat generate` has run;
+ * type-checks into a column of a compatible type (once `drizzle-saat generate` has run;
  * permissive before that).
  */
 export function ref<K extends NamespaceName>(namespace: K): RefBuilder<K>;

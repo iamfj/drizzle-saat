@@ -24,7 +24,7 @@ function makeAdapter(chunkSize: number): DialectAdapter {
       if (tables.length === 0) return;
       // Wipe with DELETE (DML), not TRUNCATE (DDL): TRUNCATE forces an implicit
       // COMMIT in MySQL, which would silently end the surrounding transaction
-      // and void saat's all-or-nothing guarantee. DELETE stays transactional, so
+      // and void drizzle-saat's all-or-nothing guarantee. DELETE stays transactional, so
       // a later insert failure still rolls the wipe back. Trade-off: DELETE does
       // not reset AUTO_INCREMENT (acceptable for throwaway dev/test data).
       await tx.execute(sql.raw("SET FOREIGN_KEY_CHECKS = 0"));

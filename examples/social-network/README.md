@@ -24,13 +24,13 @@ bun run verify
 ## Concepts shown
 
 - **Nested refs inside JSON** — `posts.metadata` is a JSON column, and
-  `metadata.pinnedBy` is a `ref("user", "ada")`. saat resolves refs nested in
+  `metadata.pinnedBy` is a `ref("user", "ada")`. drizzle-saat resolves refs nested in
   objects/arrays, not just top-level columns:
   ```json
   { "lang": "en", "pinnedBy": 1 }      // ← the ref became Ada's user id
   ```
 - **Two namespaces, one table** — `comment` (roots) and `reply` both write into
-  `comments`; replies point at a root via `ref("comment").random()`, so saat
+  `comments`; replies point at a root via `ref("comment").random()`, so drizzle-saat
   inserts roots first.
 - **Self-referential & many-to-many edges** — `follows` (user→user) and
   `post_tags` (post↔tag) join via surrogate-id tables.
@@ -40,6 +40,6 @@ bun run verify
 
 `comments.parentId` is modelled as a *soft* reference (no Drizzle
 `.references()`), and ordering is driven by `ref("comment")` instead. A declared
-self-FK on a table that has two namespaces makes saat's FK ordering report a
+self-FK on a table that has two namespaces makes drizzle-saat's FK ordering report a
 false cycle (`comment → reply → comment`); the soft-reference + ref approach
 keeps the graph acyclic while the DDL still enforces the constraint.

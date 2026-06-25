@@ -66,7 +66,7 @@ export function createRng(seed: number): Rng {
     },
     pick(items) {
       if (items.length === 0) {
-        throw new Error("saat: cannot pick from an empty set");
+        throw new Error("drizzle-saat: cannot pick from an empty set");
       }
       return items[Math.floor(rand() * items.length)] as (typeof items)[number];
     },

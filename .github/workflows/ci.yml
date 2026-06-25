@@ -52,7 +52,7 @@ jobs:
         image: mysql:8
         env:
           MYSQL_ROOT_PASSWORD: root
-          MYSQL_DATABASE: saat_test
+          MYSQL_DATABASE: drizzle-saat_test
         ports:
           - 3306:3306
         options: >-
@@ -60,7 +60,7 @@ jobs:
           --health-interval=10s --health-timeout=5s --health-retries=10
     env:
       INTEGRATION: "1"
-      MYSQL_URL: "mysql://root:root@127.0.0.1:3306/saat_test"
+      MYSQL_URL: "mysql://root:root@127.0.0.1:3306/drizzle-saat_test"
     steps:
       - uses: actions/checkout@v4
       - uses: oven-sh/setup-bun@v2

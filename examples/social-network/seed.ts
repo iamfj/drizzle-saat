@@ -1,14 +1,14 @@
-// Runnable demo: build a fresh SQLite DB, then let saat seed it.
+// Runnable demo: build a fresh SQLite DB, then let drizzle-saat seed it.
 //
 //   bun run seed       # seed dev.db and print a report
 //   bun run verify     # prove the seed is reproducible (seed twice, diff)
 //
 // Uses Bun's built-in `bun:sqlite` so it runs with zero native setup. In a real
-// project you'd just run the `saat` CLI against your real database instead —
-// the fixtures in ./saat don't change. See README.md.
+// project you'd just run the `drizzle-saat` CLI against your real database instead —
+// the fixtures in ./drizzle-saat don't change. See README.md.
 import { Database } from "bun:sqlite";
 import { drizzle } from "drizzle-orm/bun-sqlite";
-import { seed } from "saat";
+import { seed } from "drizzle-saat";
 import { DDL } from "./db/setup";
 
 const SEED = 42;

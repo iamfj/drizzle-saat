@@ -1,6 +1,6 @@
 {
   "name": "drizzle-saat",
-  "version": "0.0.0",
+  "version": "0.1.0",
   "description": "TypeScript-native, type-safe database seeding for Drizzle ORM — fixtures as easy as YAML.",
   "keywords": [
     "drizzle",

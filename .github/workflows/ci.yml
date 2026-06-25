@@ -40,7 +40,9 @@ jobs:
       # runs against real cli/index bundles instead of skipping.
       - run: bun run build
       - name: Unit + in-process DB tests (SQLite, PGlite)
-        run: bun test
+        # `bun run test` scopes to ./test; bare `bun test` would also sweep in
+        # the standalone examples/ suites, which aren't installed in CI.
+        run: bun run test
 
   integration-mysql:
     name: MySQL integration

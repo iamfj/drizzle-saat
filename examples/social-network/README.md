@@ -1,7 +1,7 @@
 # social-network (large)
 
 The deepest graph in the set: **8 tables, 8 namespaces** across three fixture
-files (`people.ts`, `content.ts`, `engagement.ts`) — ~90 lines producing **1100+
+files (`people.fixture.ts`, `content.fixture.ts`, `engagement.fixture.ts`) — ~90 lines producing **1100+
 rows**: users, a follow graph, posts, tags, a post↔tag many-to-many, threaded
 comments, and likes — all deterministic.
 

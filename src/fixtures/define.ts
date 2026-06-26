@@ -22,6 +22,10 @@ export type RowInput<T extends Table> = {
  * bulk fake data (`count` + `data()`) or exact keyed records (`rows`). Both
  * styles share the namespace, so references work regardless of how rows were
  * produced.
+ *
+ * For shared async setup (e.g. hashing a password), a fixture's `setup()` hook
+ * resolves a value passed to each `data()` as `ctx.setup` (typed `unknown` —
+ * annotate it, or prefer top-level `await` in the module for full type safety).
  */
 export interface SeedDef<T extends Table = Table> {
   /** The Drizzle table to insert into. */
@@ -42,11 +46,24 @@ export interface SeedDef<T extends Table = Table> {
 export interface SeedRowContext {
   /** Zero-based index of the row within this seed's `count`. */
   index: number;
+  /**
+   * Value resolved by the fixture's `setup()` hook (`undefined` if there is
+   * none). Typed `unknown`; cast it, or annotate the `data()` parameter.
+   */
+  setup: unknown;
 }
 
 export interface FixtureDef {
   /** Default scenario for all seeds in this fixture. */
   scenario?: string;
+  /**
+   * Optional async hook run once before this fixture's rows are generated. Its
+   * resolved value is passed to every `data()` as `ctx.setup` — the place for
+   * async setup like hashing a shared password or a lookup. Runs inside the
+   * deterministic clock window, so `now()` works; `faker` is not yet active.
+   * For a fully-typed shared value, prefer top-level `await` in the module.
+   */
+  setup?: () => unknown;
   seeds: SeedDef[];
 }
 
@@ -60,12 +77,14 @@ type ValidatedSeeds<S extends readonly unknown[]> = {
  * Declare a fixture. Inference flows from each seed's `table` into its
  * `data()`/`rows` shape — so a wrong column type, a missing required column, or
  * an unknown column is a compile error — while still allowing `ref(...)`
- * placeholders in any field.
+ * placeholders in any field. An optional async `setup()` runs once before row
+ * generation; its resolved value reaches each `data()` as `ctx.setup`.
  */
 export function defineFixture<const S extends readonly SeedDef[]>(def: {
   scenario?: string;
+  setup?: () => unknown;
   seeds: S & ValidatedSeeds<S>;
-}): { scenario?: string; seeds: S } {
+}): { scenario?: string; setup?: () => unknown; seeds: S } {
   return def;
 }
 

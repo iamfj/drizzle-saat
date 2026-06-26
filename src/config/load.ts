@@ -3,10 +3,21 @@ import { readFile } from "node:fs/promises";
 import { isAbsolute, resolve } from "node:path";
 import { type Jiti, createJiti } from "jiti";
 import { glob } from "tinyglobby";
+import { DEFAULT_CLOCK_BASE } from "../clock.js";
 import type { Dialect } from "../types.js";
 import { SaatError } from "../util/errors.js";
 import { log } from "../util/log.js";
 import type { DrizzleConfigSlice, ResolvedConfig, SaatUserConfig } from "./types.js";
+
+/** Resolve the configured `now` base time (Date / epoch ms / string) to epoch ms. */
+function resolveClockBase(now: SaatUserConfig["now"]): number {
+  if (now === undefined) return DEFAULT_CLOCK_BASE;
+  const ms = now instanceof Date ? now.getTime() : typeof now === "number" ? now : Date.parse(now);
+  if (Number.isNaN(ms)) {
+    throw new SaatError(`invalid \`now\` in drizzle-saat config: ${JSON.stringify(now)}.`);
+  }
+  return ms;
+}
 
 const SAAT_CONFIG_NAMES = [
   "drizzle-saat.config.ts",
@@ -174,6 +185,10 @@ export async function resolveConfig(opts: ResolveConfigOptions = {}): Promise<Re
     typesOut,
     seed: userConfig.seed ?? 1,
     chunkSize: userConfig.chunkSize,
+    truncate: userConfig.truncate ?? "cascade",
+    locale: userConfig.locale,
+    clockBase: resolveClockBase(userConfig.now),
+    deferConstraints: userConfig.deferConstraints ?? false,
     drizzleConfigPath,
   };
 }

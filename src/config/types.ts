@@ -1,4 +1,18 @@
+import type { LocaleDefinition } from "@faker-js/faker";
 import type { Dialect } from "../types.js";
+
+/**
+ * How drizzle-saat wipes tables before reseeding.
+ *
+ * - `"cascade"` (default): wipe fixtured tables *and* anything referencing them
+ *   (Postgres `TRUNCATE … CASCADE`; FK-checks-off DELETE on MySQL/SQLite). A
+ *   full reseed. Note the blast radius: dependents you didn't fixture are wiped
+ *   too.
+ * - `"restrict"`: wipe only the fixtured tables, in dependent-first order, and
+ *   error if an unfixtured table still references one. Safer for partial seeds.
+ * - `false`: don't wipe at all — append to existing data (test-factory mode).
+ */
+export type TruncateMode = "cascade" | "restrict" | false;
 
 /** Shape of the user's `drizzle-saat.config.ts` (or the `"drizzle-saat"` key in package.json). */
 export interface SaatUserConfig {
@@ -12,6 +26,33 @@ export interface SaatUserConfig {
   typesOut?: string;
   /** Override the per-dialect insert batch size. */
   chunkSize?: number;
+  /** How to wipe before reseeding. Default: `"cascade"`. See {@link TruncateMode}. */
+  truncate?: TruncateMode;
+  /**
+   * Faker locale(s) for generated data. Import a locale from `@faker-js/faker`
+   * (e.g. `import { de } from "@faker-js/faker"`). A single locale is used with
+   * `en`/`base` as fallbacks; pass an array to control the fallback chain
+   * yourself. Default: `[en, base]` (English).
+   */
+  locale?: LocaleDefinition | LocaleDefinition[];
+  /**
+   * Base time for the deterministic `now()` helper (a `Date`, epoch ms, or a
+   * parseable date string). Fixes `now()` for the whole run so timestamps are
+   * reproducible. Default: 2024-01-01T00:00:00.000Z.
+   */
+  now?: Date | string | number;
+  /**
+   * Defer foreign-key enforcement until the seeding transaction commits, and
+   * drop FK-based insert *ordering* — so tables with mutual / cyclic real FKs
+   * (using literal ids) can be seeded in any order. Default: `false`.
+   *
+   * Best-effort per dialect: SQLite (`PRAGMA defer_foreign_keys`) and Postgres
+   * (`SET CONSTRAINTS ALL DEFERRED`, **only** for FKs declared `DEFERRABLE`)
+   * still validate at commit; MySQL (`SET FOREIGN_KEY_CHECKS=0`) skips FK
+   * validation entirely for the run. Does *not* dissolve `ref()` cycles — those
+   * resolve to generated ids and still require acyclic references.
+   */
+  deferConstraints?: boolean;
 }
 
 /** Identity helper for type-safe `drizzle-saat.config.ts` authoring. */
@@ -47,6 +88,14 @@ export interface ResolvedConfig {
   seed: number;
   /** Optional chunk-size override. */
   chunkSize?: number;
+  /** How to wipe before reseeding. */
+  truncate: TruncateMode;
+  /** Faker locale chain for generated data. */
+  locale?: LocaleDefinition | LocaleDefinition[];
+  /** Resolved base time (epoch ms) for the deterministic `now()` helper. */
+  clockBase: number;
+  /** Defer FK enforcement + drop FK-based insert ordering. Default `false`. */
+  deferConstraints: boolean;
   /** Absolute path to the resolved drizzle config. */
   drizzleConfigPath: string;
 }

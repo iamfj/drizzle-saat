@@ -122,20 +122,41 @@ function truncateTx(throwOnCall?: number) {
 describe("mysql adapter truncate", () => {
   const tables = [{ name: "t1" }, { name: "t2" }] as TableInfo[];
 
-  test("disables FK checks, DELETEs each table, then re-enables (4 statements)", async () => {
+  test("cascade disables FK checks, DELETEs each table, then re-enables (4 statements)", async () => {
     const adapter = await getAdapter();
     const tx = truncateTx();
-    await adapter.truncate(tx as any, tables);
+    await adapter.truncate(tx as any, tables, "cascade");
     // SET FK=0, DELETE t1, DELETE t2, SET FK=1.
     expect(tx.calls.length).toBe(4);
   });
 
-  test("re-enables FK checks even if a DELETE throws (finally restores session var)", async () => {
+  test("cascade re-enables FK checks even if a DELETE throws (finally restores session var)", async () => {
     const adapter = await getAdapter();
     const tx = truncateTx(3); // throw on the second DELETE (3rd statement)
-    expect(adapter.truncate(tx as any, tables)).rejects.toThrow("boom");
+    expect(adapter.truncate(tx as any, tables, "cascade")).rejects.toThrow("boom");
     // Give the rejected promise a tick, then assert the finally's SET ran.
     await Promise.resolve();
     expect(tx.calls.length).toBe(4);
+  });
+
+  test("restrict DELETEs each table with FK checks left on (no SET statements)", async () => {
+    const adapter = await getAdapter();
+    const tx = truncateTx();
+    await adapter.truncate(tx as any, tables, "restrict");
+    // Just DELETE t1, DELETE t2 — no FK-checks toggling.
+    expect(tx.calls.length).toBe(2);
+  });
+});
+
+describe("mysql adapter deferConstraints", () => {
+  test("disables FK checks and returns a restore that re-enables them", async () => {
+    const adapter = await getAdapter();
+    const tx = truncateTx();
+    const restore = await adapter.deferConstraints(tx as any);
+    // SET FOREIGN_KEY_CHECKS = 0
+    expect(tx.calls.length).toBe(1);
+    await restore();
+    // SET FOREIGN_KEY_CHECKS = 1
+    expect(tx.calls.length).toBe(2);
   });
 });

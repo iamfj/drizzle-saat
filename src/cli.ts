@@ -5,6 +5,7 @@ import { cac } from "cac";
 import { version } from "../package.json";
 import { generateTypes } from "./codegen/generate.js";
 import { createLoader, resolveConfig } from "./config/load.js";
+import type { TruncateMode } from "./config/types.js";
 import { type SeedReport, seed } from "./engine/seed.js";
 import { SaatError } from "./util/errors.js";
 import { log } from "./util/log.js";
@@ -55,9 +56,28 @@ function printReport(report: SeedReport): void {
         `(seed ${report.seed}) in ${report.durationMs}ms`,
     );
   }
+  if (report.truncated.length > 0) {
+    log.step(`wiped ${report.truncated.length} table(s): ${report.truncated.join(", ")}`);
+  } else {
+    log.step("append mode — no tables wiped");
+  }
   for (const { namespace, table, count } of report.inserted) {
     log.step(`${namespace} → ${table}  (${count})`);
   }
+}
+
+/** Parse the `--truncate` flag into a {@link TruncateMode}. */
+export function parseTruncate(value: string | boolean | undefined): TruncateMode | undefined {
+  if (value === undefined) return undefined;
+  // `--no-truncate` (cac negation) arrives as `false`.
+  if (value === false) return false;
+  const text = String(value).trim().toLowerCase();
+  if (text === "cascade") return "cascade";
+  if (text === "restrict") return "restrict";
+  if (text === "none" || text === "false" || text === "off") return false;
+  throw new SaatError(
+    `--truncate must be one of "cascade", "restrict", or "none", got "${value}".`,
+  );
 }
 
 /** Block until SIGINT/SIGTERM, then close the watcher and resolve. */
@@ -83,6 +103,7 @@ cli
   .command("", "Wipe and reseed the database (regenerates types first)")
   .option("--scenario <name>", "Also run seeds tagged with this scenario (added to the base set)")
   .option("--seed <n>", "Override the RNG seed for this run")
+  .option("--truncate <mode>", "Wipe strategy: cascade | restrict | none (append)")
   .option("--dry-run", "Resolve and order everything without writing")
   .option("--watch", "Regenerate types as fixtures change (does not seed)")
   .option("--config <path>", "Path to drizzle-saat.config.ts")
@@ -91,6 +112,7 @@ cli
       options: CommonOptions & {
         scenario?: string;
         seed?: string | number;
+        truncate?: string | boolean;
         dryRun?: boolean;
         watch?: boolean;
       },
@@ -99,6 +121,7 @@ cli
         // Validate args before touching config so bad input fails with a
         // pointed message (not a downstream "couldn't find drizzle.config").
         const seedOverride = parseSeed(options.seed);
+        const truncateOverride = parseTruncate(options.truncate);
         const config = await resolveConfig({ configPath: options.config });
 
         if (options.watch) {
@@ -119,6 +142,7 @@ cli
           configPath: options.config,
           scenario: options.scenario,
           seed: seedOverride,
+          truncate: truncateOverride,
           dryRun: options.dryRun,
         });
         printReport(report);

@@ -100,10 +100,11 @@ export default defineConfig({
 })
 ```
 
-**2. Write fixtures** in `drizzle-saat/`:
+**2. Write fixtures** in `drizzle-saat/` — each fixture file is named
+`*.fixture.ts` (so shared catalogs/helpers can live alongside them):
 
 ```ts
-// drizzle-saat/users.ts
+// drizzle-saat/users.fixture.ts
 import { defineFixture, faker, ref } from 'drizzle-saat'
 import { users, posts } from '../db/schema'
 
@@ -189,6 +190,33 @@ drizzle-saat --scenario checkout-flow
 Seeds without a scenario are always part of the run; `--scenario X` adds the
 seeds tagged `X` on top.
 
+## Async fixtures
+
+Fixtures are loaded as ES modules, so **top-level `await` is supported** — the
+cleanest way to compute a shared value with full type safety:
+
+```ts
+import { hashPassword } from 'better-auth/crypto'
+const passwordHash = await hashPassword('demo')   // top-level await
+export default defineFixture({
+  seeds: [{ table: users, namespace: 'user', rows: {
+    alice: { email: 'alice@x.com', passwordHash },
+  } }],
+})
+```
+
+For per-fixture async setup, a `setup()` hook runs once before row generation;
+its resolved value is passed to each `data()` as `ctx.setup` (typed `unknown` —
+annotate or cast it):
+
+```ts
+export default defineFixture({
+  setup: async () => ({ token: await mintToken() }),
+  seeds: [{ table: sessions, namespace: 'session', count: 5,
+    data: ({ setup }) => ({ token: (setup as { token: string }).token }) }],
+})
+```
+
 ## CLI
 
 | Command / flag             | Behavior                                                                 |
@@ -196,9 +224,31 @@ seeds tagged `X` on top.
 | `drizzle-saat`                     | Run the seeder (regenerates types first), in one transaction.            |
 | `drizzle-saat --scenario <name>`   | Run the default seeds plus the named scenario.                           |
 | `drizzle-saat --seed <n>`          | Override the RNG seed for this run.                                       |
+| `drizzle-saat --truncate <mode>`   | Wipe strategy: `cascade` (default), `restrict`, or `none` (append).      |
 | `drizzle-saat --dry-run`           | Resolve and order everything; report what *would* be inserted. No writes.|
 | `drizzle-saat --watch`             | Regenerate types as fixtures change.                                     |
 | `drizzle-saat generate`            | (Re)generate the namespace type definitions.                             |
+
+## Determinism
+
+The same seed produces the same dataset. Two helpers keep that guarantee:
+
+- **`faker`** is seeded from the run seed. Set the locale in `drizzle-saat.config.ts`:
+  ```ts
+  import { de } from '@faker-js/faker'
+  export default defineConfig({ locale: de })   // or [de, en, base] for an explicit chain
+  ```
+- **`now()`** is a deterministic clock. App-level Drizzle defaults (`$defaultFn`,
+  `$default`, `$onUpdate`) **are applied on insert** — and those columns are
+  *optional* in fixtures, so you never need to restate `createdAt`/`updatedAt`.
+  But a `() => new Date()` default uses wall-clock time and breaks
+  reproducibility. Use `now()` instead for stable, ordered timestamps:
+  ```ts
+  import { defineFixture, now } from 'drizzle-saat'
+  // Fixed for the whole run (config `now` sets the base; default 2024-01-01):
+  createdAt: now(),
+  updatedAt: now(i * 1000),   // pass an offset in ms for ordering
+  ```
 
 ## Type safety
 
@@ -264,13 +314,27 @@ it is part of your project's compilation. Add the **file** to your `tsconfig.jso
 - **drizzle-saat only manages tables that have fixtures.** It truncates and seeds the
   tables backing your namespaces; tables you don't write fixtures for are left
   untouched (and won't be wiped between runs).
-- **Postgres truncation uses `TRUNCATE … RESTART IDENTITY CASCADE`.** `CASCADE`
-  can also remove rows from *other* tables that hold foreign keys into the
-  seeded tables, even if those tables aren't part of your fixtures. This is
-  expected for a wipe-and-reseed dev/test tool — just don't point `drizzle-saat` at a
-  database whose other tables you care about (and never at production).
+- **Wipe strategy is configurable via `truncate`** (config or `--truncate`),
+  defaulting to `"cascade"`:
+  - `"cascade"` (default) — wipe fixtured tables *and* anything referencing
+    them (Postgres `TRUNCATE … RESTART IDENTITY CASCADE`; FK-checks-off `DELETE`
+    on MySQL/SQLite). Note the blast radius: `CASCADE` can also remove rows from
+    *other* tables that hold foreign keys into the seeded tables, even ones you
+    didn't fixture. Don't point drizzle-saat at a database whose other tables you
+    care about (and never at production).
+  - `"restrict"` — wipe only the fixtured tables (dependent-first) and error if
+    an unfixtured table still references one. Safer for partial seeds.
+  - `false` — don't wipe at all; append to existing data (test-factory mode).
+  The seed report (and CLI output) lists exactly which tables were wiped.
 - **References resolve to a single primary-key value.** A table with a
   composite primary key can be seeded, but cannot be the *target* of a `ref()`.
+- **Foreign keys are auto-ordered**, so a real FK inserts its parent first even
+  without a `ref()`. Mutual/cyclic real FKs (with literal ids) otherwise trip a
+  `CycleError`; set `deferConstraints: true` to defer FK enforcement to commit
+  and drop FK-based ordering. Best-effort per dialect — SQLite and Postgres
+  still validate at commit (Postgres **only** for `DEFERRABLE` FKs); MySQL skips
+  FK validation for the run. It does **not** dissolve `ref()` cycles, which
+  resolve to generated ids and still need acyclic references.
 
 ## AI agent skills
 

@@ -1,6 +1,8 @@
 import type { Table } from "drizzle-orm";
+import { setActiveClock } from "../clock.js";
 import { createLoader, resolveConfig } from "../config/load.js";
-import { createAdapter } from "../dialects/index.js";
+import type { TruncateMode } from "../config/types.js";
+import { type AdapterHandle, createAdapter } from "../dialects/index.js";
 import { loadFixtures } from "../fixtures/load.js";
 import { createRng } from "../rng/index.js";
 import { loadSchema } from "../schema/introspect.js";
@@ -19,6 +21,10 @@ export interface SeedOptions {
   seed?: number;
   /** Resolve and order everything but write nothing. */
   dryRun?: boolean;
+  /** Override the configured wipe strategy for this run. See {@link TruncateMode}. */
+  truncate?: TruncateMode;
+  /** Defer FK enforcement and drop FK-based ordering for this run. */
+  deferConstraints?: boolean;
   /**
    * Override/augment the connection credentials resolved from drizzle.config.
    * Notably accepts a pre-built Drizzle instance as `{ db }` or a driver client
@@ -32,6 +38,8 @@ export interface SeedReport {
   total: number;
   seed: number;
   dryRun: boolean;
+  /** SQL names of the tables that were (or, in dry-run, would be) wiped. */
+  truncated: string[];
   durationMs: number;
 }
 
@@ -57,11 +65,33 @@ export async function seed(opts: SeedOptions = {}): Promise<SeedReport> {
   const config = await resolveConfig({ cwd: opts.cwd, configPath: opts.configPath });
   const jiti = createLoader();
   const effectiveSeed = opts.seed ?? config.seed;
-  const rng = createRng(effectiveSeed);
+  const rng = createRng(effectiveSeed, config.locale);
+  const deferConstraints = opts.deferConstraints ?? config.deferConstraints;
 
-  const schema = await loadSchema(config.schemaPaths, config.dialect, jiti);
-  const fixtures = await loadFixtures(config.fixturesDir, jiti);
-  const plan = buildPlan(fixtures, schema, rng, { scenario: opts.scenario });
+  // Fix the deterministic clock across fixture loading *and* row generation, so
+  // `now()` is stable whether it's called in a keyed `rows` literal (evaluated
+  // at fixture import) or a lazy `data()` factory (evaluated during planning).
+  setActiveClock(config.clockBase);
+  let plan: Plan;
+  try {
+    const schema = await loadSchema(config.schemaPaths, config.dialect, jiti);
+    const fixtures = await loadFixtures(config.fixturesDir, jiti);
+    // Run each fixture's async setup() hook (e.g. password hashing) before row
+    // generation; its resolved value flows into that fixture's data() calls.
+    const setupResults = new Map<string, unknown>();
+    for (const { file, fixture } of fixtures) {
+      if (typeof fixture.setup === "function") {
+        setupResults.set(file, await fixture.setup());
+      }
+    }
+    plan = buildPlan(fixtures, schema, rng, {
+      scenario: opts.scenario,
+      setupResults,
+      deferConstraints,
+    });
+  } finally {
+    setActiveClock(null);
+  }
 
   const inserted = plan.seeds.map((s) => ({
     namespace: s.namespace,
@@ -70,9 +100,21 @@ export async function seed(opts: SeedOptions = {}): Promise<SeedReport> {
   }));
   const total = inserted.reduce((n, s) => n + s.count, 0);
 
+  const truncateMode = opts.truncate ?? config.truncate;
+  // Wipe dependents first.
+  const truncateTargets = uniqueTables([...plan.seeds].reverse());
+  const truncated = truncateMode === false ? [] : truncateTargets.map((t) => t.name);
+
   if (opts.dryRun) {
     simulate(plan, rng);
-    return { inserted, total, seed: effectiveSeed, dryRun: true, durationMs: Date.now() - start };
+    return {
+      inserted,
+      total,
+      seed: effectiveSeed,
+      dryRun: true,
+      truncated,
+      durationMs: Date.now() - start,
+    };
   }
 
   const dbCredentials = { ...config.dbCredentials, ...opts.dbCredentials };
@@ -80,57 +122,82 @@ export async function seed(opts: SeedOptions = {}): Promise<SeedReport> {
   const { adapter } = handle;
   try {
     await adapter.transaction(handle.db, async (tx) => {
-      // Wipe dependents first.
-      await adapter.truncate(tx, uniqueTables([...plan.seeds].reverse()));
+      if (truncateMode !== false) {
+        await adapter.truncate(tx, truncateTargets, truncateMode);
+      }
 
-      const store = new ResolvedStore();
-      for (const planned of plan.seeds) {
-        store.init(planned.namespace, planned.info.primaryKeys);
-
-        const resolved = planned.rows.map((r) => store.resolveRow(r.data, rng));
-        const columnCount = planned.info.columns.length;
-        const chunkSize = clampChunk(
-          config.chunkSize ?? adapter.chunkSize,
-          columnCount,
-          handle.chunkLimitFor,
-        );
-
-        let cursor = 0;
-        for (let i = 0; i < resolved.length; i += chunkSize) {
-          const chunk = resolved.slice(i, i + chunkSize);
-          let pkRows: Row[];
-          try {
-            pkRows = await adapter.insert(tx, planned.info, chunk);
-          } catch (err) {
-            // Attribute raw driver errors back to the fixture: which namespace,
-            // table, and (keyed) rows were in the failing batch.
-            throw new InsertError(
-              planned.namespace,
-              planned.info.name,
-              planned.rows.slice(i, i + chunk.length).map((r) => r.key),
-              err as Error,
-            );
-          }
-          for (let j = 0; j < chunk.length; j++) {
-            store.record(
-              planned.namespace,
-              { key: planned.rows[cursor]!.key, data: chunk[j]! },
-              pkRows[j] ?? {},
-            );
-            cursor++;
-          }
-        }
+      // Defer FK enforcement for the insert phase if requested, restoring the
+      // previous behavior afterward (and on failure, before the rollback).
+      const restoreConstraints = deferConstraints ? await adapter.deferConstraints(tx) : undefined;
+      try {
+        await insertAll(plan, tx, handle, rng, config);
+      } finally {
+        if (restoreConstraints) await restoreConstraints();
       }
     });
   } catch (err) {
-    // Tear down, but never let a dispose failure bury the real seeding error.
     await handle.dispose().catch(() => {});
     throw err;
   }
-  // Success path: let a dispose failure surface (nothing to mask).
   await handle.dispose();
 
-  return { inserted, total, seed: effectiveSeed, dryRun: false, durationMs: Date.now() - start };
+  return {
+    inserted,
+    total,
+    seed: effectiveSeed,
+    dryRun: false,
+    truncated,
+    durationMs: Date.now() - start,
+  };
+}
+
+/** Resolve refs and insert every planned seed in order, recording ids for refs. */
+async function insertAll(
+  plan: Plan,
+  tx: any,
+  handle: AdapterHandle,
+  rng: ReturnType<typeof createRng>,
+  config: Awaited<ReturnType<typeof resolveConfig>>,
+): Promise<void> {
+  const { adapter } = handle;
+  const store = new ResolvedStore();
+  for (const planned of plan.seeds) {
+    store.init(planned.namespace, planned.info.primaryKeys);
+
+    const resolved = planned.rows.map((r) => store.resolveRow(r.data, rng));
+    const columnCount = planned.info.columns.length;
+    const chunkSize = clampChunk(
+      config.chunkSize ?? adapter.chunkSize,
+      columnCount,
+      handle.chunkLimitFor,
+    );
+
+    let cursor = 0;
+    for (let i = 0; i < resolved.length; i += chunkSize) {
+      const chunk = resolved.slice(i, i + chunkSize);
+      let pkRows: Row[];
+      try {
+        pkRows = await adapter.insert(tx, planned.info, chunk);
+      } catch (err) {
+        // Attribute raw driver errors back to the fixture: which namespace,
+        // table, and (keyed) rows were in the failing batch.
+        throw new InsertError(
+          planned.namespace,
+          planned.info.name,
+          planned.rows.slice(i, i + chunk.length).map((r) => r.key),
+          err as Error,
+        );
+      }
+      for (let j = 0; j < chunk.length; j++) {
+        store.record(
+          planned.namespace,
+          { key: planned.rows[cursor]!.key, data: chunk[j]! },
+          pkRows[j] ?? {},
+        );
+        cursor++;
+      }
+    }
+  }
 }
 
 function clampChunk(

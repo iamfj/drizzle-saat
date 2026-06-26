@@ -6,8 +6,8 @@ One schema (workspaces → users → events), **three datasets** selected by
 | run | fixtures included | events |
 |-----|-------------------|--------|
 | `bun run seed` (base) | scenario-less only | 50 |
-| `--scenario load` | base **+** `load.ts` | 5,050 |
-| `--scenario e2e` | base **+** `e2e.ts` | 52 |
+| `--scenario load` | base **+** `load.fixture.ts` | 5,050 |
+| `--scenario e2e` | base **+** `e2e.fixture.ts` | 52 |
 
 **Bare run seeds the scenario-less base; `--scenario X` *adds* the X-tagged
 fixtures on top.** Same base, different overlays — for local dev, load testing,

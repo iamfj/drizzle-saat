@@ -19,10 +19,11 @@ const baseAdapter: Pick<DialectAdapter, "dialect" | "chunkSize" | "transaction">
 
 const adapter: DialectAdapter = {
   ...baseAdapter,
-  async truncate(tx: any, tables: TableInfo[]): Promise<void> {
+  async truncate(tx: any, tables: TableInfo[], mode: "cascade" | "restrict"): Promise<void> {
     if (tables.length === 0) return;
     const names = tables.map(quoted).join(", ");
-    await tx.execute(sql.raw(`TRUNCATE TABLE ${names} RESTART IDENTITY CASCADE`));
+    const clause = mode === "cascade" ? "CASCADE" : "RESTRICT";
+    await tx.execute(sql.raw(`TRUNCATE TABLE ${names} RESTART IDENTITY ${clause}`));
   },
   async insert(tx: any, info: TableInfo, rows: Row[]): Promise<Row[]> {
     if (rows.length === 0) return [];
@@ -32,6 +33,12 @@ const adapter: DialectAdapter = {
       return rows.map(() => ({}));
     }
     return (await tx.insert(info.table).values(rows).returning(proj)) as Row[];
+  },
+  async deferConstraints(tx: any): Promise<() => Promise<void>> {
+    // Only affects FKs declared DEFERRABLE; still checked at COMMIT. Restore is
+    // a no-op — SET CONSTRAINTS is reset automatically when the txn ends.
+    await tx.execute(sql.raw("SET CONSTRAINTS ALL DEFERRED"));
+    return async () => {};
   },
 };
 

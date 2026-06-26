@@ -5,7 +5,7 @@ A multi-tenant SaaS: **organizations** own **users** and **projects**;
 **invitations** track pending access. Five tables, every tenant-scoped row
 wired through a ref.
 
-Two fixture files (`drizzle-saat/tenants.ts`, `drizzle-saat/access.ts`) — ~80 lines — produce a
+Two fixture files (`drizzle-saat/tenants.fixture.ts`, `drizzle-saat/access.fixture.ts`) — ~80 lines — produce a
 coherent multi-tenant dataset where every user, project, invitation, and
 membership belongs to a real organization.
 

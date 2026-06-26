@@ -7,8 +7,9 @@ All exports come from `"drizzle-saat"`.
 ```ts
 function defineFixture<const S extends readonly SeedDef[]>(def: {
   scenario?: string;
-  seeds: S; // validated against your schema
-}): { scenario?: string; seeds: S };
+  setup?: () => unknown;   // async hook; resolved value → each data()'s ctx.setup
+  seeds: S;                // validated against your schema
+}): { scenario?: string; setup?: () => unknown; seeds: S };
 
 function defineSeed<T extends Table>(seed: SeedDef<T>): SeedDef<T>;
 
@@ -21,7 +22,10 @@ interface SeedDef<T extends Table = Table> {
   rows?: Record<string, RowInput<T>>;          // exact keyed rows; key enables ref(ns, key)
 }
 
-interface SeedRowContext { index: number; }    // zero-based row index within count
+interface SeedRowContext {
+  index: number;   // zero-based row index within count
+  setup: unknown;  // fixture setup() result (undefined if none); annotate/cast it
+}
 
 type FieldInput<V> = V | Ref<V>;
 type RowInput<T extends Table> = {             // mapped over InferInsertModel<T>
@@ -34,7 +38,25 @@ work across both). At least one is required. `count: 0` / empty `rows` is a vali
 no-op that still truncates the table.
 
 **Required vs optional fields** follow Drizzle: a NOT NULL column without a default
-is required; defaulted / nullable / serial-id columns are optional.
+is required; defaulted / nullable / serial-id columns are optional. App-level
+defaults (`$default`, `$defaultFn`, `$onUpdate`) are applied by Drizzle on insert,
+so those columns are optional — don't restate `createdAt`/`updatedAt`.
+
+**Async setup.** Fixtures are ES modules, so **top-level `await`** works (best for
+a fully-typed shared value). Or use the per-fixture `setup()` hook for async work
+(hashing, lookups); its result reaches each `data()` as `ctx.setup`. Both run
+inside the deterministic clock window (`now()` works); `faker` is active only
+during `data()`/row generation.
+
+## now() — deterministic time
+
+```ts
+function now(offsetMs?: number): Date;          // exported from "drizzle-saat"
+```
+
+Returns a fixed base time for the whole run (config `now`; default 2024-01-01) so
+timestamps are reproducible. Pass an offset for ordering: `now(index * 1000)`.
+Use it instead of `() => new Date()`. Falls back to the wall clock outside a run.
 
 ## ref
 
@@ -65,6 +87,10 @@ interface SaatUserConfig {
   drizzleConfig?: string;   // path to drizzle.config.ts if non-standard
   typesOut?: string;        // generated types path, default ".drizzle-saat/types.d.ts"
   chunkSize?: number;       // override per-dialect insert batch size
+  truncate?: "cascade" | "restrict" | false; // wipe strategy, default "cascade"
+  locale?: LocaleDefinition | LocaleDefinition[]; // faker locale(s), default [en, base]
+  now?: Date | string | number; // base time for now(), default 2024-01-01
+  deferConstraints?: boolean; // defer FK checks + drop FK ordering, default false
 }
 ```
 
@@ -82,12 +108,15 @@ interface SeedOptions {
   configPath?: string;
   scenario?: string;
   seed?: number;
+  truncate?: "cascade" | "restrict" | false; // override the configured wipe strategy
   dryRun?: boolean;
   dbCredentials?: Record<string, any>; // { db } (prebuilt Drizzle) or { client }
 }
 interface SeedReport {
   inserted: { namespace: string; table: string; count: number }[];
-  total: number; seed: number; dryRun: boolean; durationMs: number;
+  total: number; seed: number; dryRun: boolean;
+  truncated: string[];  // tables wiped (or, in dry-run, that would be)
+  durationMs: number;
 }
 ```
 
@@ -97,7 +126,8 @@ entirely — the in-process testing pattern (see the `test-with-drizzle-saat` sk
 ## Errors
 
 `SaatError` (base), `CycleError` (dependency cycle, with the concrete path),
-`MissingReferenceError`.
+`MissingReferenceError`, `InsertError` (driver error during insert, tagged with
+the namespace, table, and keyed rows in the failing batch).
 
 ## Codegen mechanism
 
@@ -137,10 +167,13 @@ auto-generated ("Do not edit") and sorted for reproducibility.
 
 | Mistake | Correct pattern |
 |---|---|
+| Fixture file not named `*.fixture.ts` | Only `*.fixture.{ts,mts,cts,js,mjs}` are loaded; rename (e.g. `users.ts` → `users.fixture.ts`) |
 | `faker.date.recent({ days: 30 })` without refDate | Always add `refDate: "2026-06-01T00:00:00.000Z"` |
 | Reusing a `namespace` across two seeds | Namespaces are global + unique; use distinct names even on one table |
 | `ref()` to a composite-/no-PK table | Only single-PK tables can be ref targets |
 | Referencing another row in the same namespace | Split into two namespaces on the same table |
+| Mutual/cyclic real FKs trip a `CycleError` | Set `deferConstraints: true` (literal ids); `ref()` cycles still need to be acyclic |
+| Restating `createdAt`/`updatedAt` everywhere | App-level defaults apply on insert; use `now()` for deterministic time |
 | `count` without `data()` | Provide `data: (ctx) => ({...})`, or use keyed `rows` |
 | Drizzle `.references()` self-FK + two namespaces on the table | Make the self-ref column soft (no `.references()`); order via `ref()` |
 | `"include": [".drizzle-saat"]` in tsconfig | List the file explicitly: `".drizzle-saat/types.d.ts"` |

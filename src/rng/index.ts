@@ -1,4 +1,4 @@
-import { Faker, base, en } from "@faker-js/faker";
+import { Faker, type LocaleDefinition, base, en } from "@faker-js/faker";
 
 /**
  * Deterministic seeding infrastructure. A single numeric seed drives both the
@@ -50,11 +50,14 @@ export interface Rng {
   pick<T>(items: readonly T[]): T;
 }
 
-export function createRng(seed: number): Rng {
+export function createRng(seed: number, locale?: LocaleDefinition | LocaleDefinition[]): Rng {
   const [a, b, c, d] = seedLanes(seed);
   const rand = sfc32(a, b, c, d);
 
-  const faker = new Faker({ locale: [en, base] });
+  // A single locale gets en/base as sensible fallbacks; an explicit array is
+  // used as-is so callers control the whole chain.
+  const localeChain = locale ? (Array.isArray(locale) ? locale : [locale, en, base]) : [en, base];
+  const faker = new Faker({ locale: localeChain });
   faker.seed(seed);
 
   return {

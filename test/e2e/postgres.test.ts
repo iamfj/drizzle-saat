@@ -61,8 +61,8 @@ function makeProject() {
     "db/schema.ts": SCHEMA,
     "drizzle.config.ts": DRIZZLE_CONFIG,
     "drizzle-saat.config.ts": "export default { seed: 42 };",
-    "drizzle-saat/users.ts": usersFixture,
-    "drizzle-saat/posts.ts": postsFixture,
+    "drizzle-saat/users.fixture.ts": usersFixture,
+    "drizzle-saat/posts.fixture.ts": postsFixture,
   });
 }
 
@@ -144,7 +144,7 @@ describe("postgres (pglite) e2e", () => {
     const badCwd = writeProject({
       "db/schema.ts": SCHEMA,
       "drizzle.config.ts": DRIZZLE_CONFIG,
-      "drizzle-saat/users.ts": `
+      "drizzle-saat/users.fixture.ts": `
         import { defineFixture } from ${JSON.stringify(SAAT_SRC)};
         import { users } from "../db/schema";
         export default defineFixture({ seeds: [

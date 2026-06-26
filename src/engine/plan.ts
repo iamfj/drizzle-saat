@@ -31,6 +31,14 @@ export interface Plan {
 
 export interface BuildPlanOptions {
   scenario?: string;
+  /** Resolved `setup()` value per fixture file, passed to each `data()`. */
+  setupResults?: Map<string, unknown>;
+  /**
+   * When true, drop foreign-key-driven ordering edges: FK enforcement is
+   * deferred at insert time, so parents need not precede dependents. Reference
+   * edges are still honored (ref values resolve to ids in order).
+   */
+  deferConstraints?: boolean;
 }
 
 /**
@@ -97,8 +105,9 @@ export function buildPlan(
             `namespace "${namespace}" (${file}) sets \`count\` but no \`data()\` factory.`,
           );
         }
+        const setup = opts.setupResults?.get(file);
         for (let index = 0; index < seed.count; index++) {
-          rows.push({ data: { ...(seed.data({ index }) as Row) } });
+          rows.push({ data: { ...(seed.data({ index, setup }) as Row) } });
         }
       }
       // Neither style provided is a mistake; an explicit `count: 0` (or empty
@@ -169,6 +178,9 @@ export function buildPlan(
       }
     }
     // Foreign-key-driven edges (ensure parents insert first even without a ref).
+    // Skipped entirely when constraints are deferred — order no longer matters
+    // for FKs, and emitting these edges would falsely reject benign FK cycles.
+    if (opts.deferConstraints) continue;
     for (const fk of planned.info.foreignKeys) {
       // Skip self-referential FKs: a table that points at itself imposes no
       // ordering *between distinct namespaces* on that table — only an explicit

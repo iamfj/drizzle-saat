@@ -4,7 +4,7 @@ A four-table store with a real foreign-key chain:
 **customers → orders → order_items ← products**. drizzle-saat topologically orders the
 inserts for you, so parents always exist before the rows that reference them.
 
-Two fixture files (`drizzle-saat/catalog.ts`, `drizzle-saat/orders.ts`) — ~70 lines total —
+Two fixture files (`drizzle-saat/catalog.fixture.ts`, `drizzle-saat/orders.fixture.ts`) — ~70 lines total —
 produce ~350 rows: customers, a product catalog, 80+ orders, and 200 line items,
 all with valid foreign keys.
 
@@ -31,7 +31,7 @@ bun run verify     # seed twice with seed 42, assert byte-identical data
   `orders` and `products`; you declare the fixtures in any order.
 - **Three ways to reference a row:**
   - `ref("customer").random()` — any seeded customer
-  - `ref("customer", "vip")` — the keyed VIP from `catalog.ts`
+  - `ref("customer", "vip")` — the keyed VIP from `catalog.fixture.ts`
   - `ref("customer").where({ country: "US" })` — first row matching a predicate
 - **Multi-file fixtures** sharing namespaces across files.
 

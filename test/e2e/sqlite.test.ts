@@ -62,8 +62,8 @@ function makeProject() {
     "db/schema.ts": SCHEMA,
     "drizzle.config.ts": DRIZZLE_CONFIG,
     "drizzle-saat.config.ts": "export default { seed: 42 };",
-    "drizzle-saat/users.ts": usersFixture,
-    "drizzle-saat/posts.ts": postsFixture,
+    "drizzle-saat/users.fixture.ts": usersFixture,
+    "drizzle-saat/posts.fixture.ts": postsFixture,
   });
 }
 
@@ -171,6 +171,26 @@ describe("sqlite e2e", () => {
     client.close();
   });
 
+  test("report lists the wiped tables (cascade)", async () => {
+    const { client, db } = makeDb();
+    const report = await seed({ cwd, dbCredentials: { db }, seed: 42 });
+    expect(report.truncated.sort()).toEqual(["posts", "users"]);
+    client.close();
+  });
+
+  test("truncate: false appends instead of wiping", async () => {
+    const { client, db } = makeDb();
+    // First run on an empty DB.
+    const first = await seed({ cwd, dbCredentials: { db }, seed: 42, truncate: false });
+    expect(first.truncated).toEqual([]);
+    expect(client.query("SELECT count(*) c FROM users").get()).toEqual({ c: 22 });
+    // Second run appends: the previous rows survive, new ones pile on.
+    await seed({ cwd, dbCredentials: { db }, seed: 42, truncate: false });
+    expect(client.query("SELECT count(*) c FROM users").get()).toEqual({ c: 44 });
+    expect(client.query("SELECT count(*) c FROM posts").get()).toEqual({ c: 104 });
+    client.close();
+  });
+
   test("dry-run writes nothing", async () => {
     const { client, db } = makeDb();
     const report = await seed({ cwd, dbCredentials: { db }, seed: 42, dryRun: true });
@@ -188,12 +208,12 @@ describe("sqlite e2e", () => {
       "db/schema.ts": SCHEMA,
       "drizzle.config.ts": DRIZZLE_CONFIG,
       "drizzle-saat.config.ts": "export default { seed: 1, chunkSize: 7 };",
-      "drizzle-saat/users.ts": `import { defineFixture } from ${JSON.stringify(SAAT_SRC)};
+      "drizzle-saat/users.fixture.ts": `import { defineFixture } from ${JSON.stringify(SAAT_SRC)};
 import { users } from "../db/schema";
 const rows = {};
 for (let i = 0; i < 20; i++) rows["u" + i] = { firstName: "U" + i, email: "u" + i + "@x.com" };
 export default defineFixture({ seeds: [{ table: users, namespace: "user", rows }] });`,
-      "drizzle-saat/posts.ts": `import { defineFixture, ref } from ${JSON.stringify(SAAT_SRC)};
+      "drizzle-saat/posts.fixture.ts": `import { defineFixture, ref } from ${JSON.stringify(SAAT_SRC)};
 import { posts } from "../db/schema";
 export default defineFixture({ seeds: [{ table: posts, namespace: "post", rows: {
   first: { title: "first", authorId: ref("user", "u0") },
@@ -229,7 +249,7 @@ export default defineFixture({ seeds: [{ table: posts, namespace: "post", rows: 
       "db/schema.ts": SCHEMA,
       "drizzle.config.ts": DRIZZLE_CONFIG,
       "drizzle-saat.config.ts": "export default { seed: 1 };",
-      "drizzle-saat/bad.ts": `import { defineFixture } from ${JSON.stringify(SAAT_SRC)};
+      "drizzle-saat/bad.fixture.ts": `import { defineFixture } from ${JSON.stringify(SAAT_SRC)};
 import { users } from "../db/schema";
 // Missing required \`firstName\` → SQLite NOT NULL violation on insert.
 export default defineFixture({ seeds: [{ table: users, namespace: "user", rows: {
@@ -260,12 +280,175 @@ export default defineFixture({ seeds: [{ table: users, namespace: "user", rows: 
     }
   });
 
+  describe("deferConstraints (benign FK cycle)", () => {
+    const CYCLE_SCHEMA = `import { integer, sqliteTable } from "drizzle-orm/sqlite-core";
+import { sql } from "drizzle-orm";
+export const nodeA = sqliteTable("node_a", {
+  id: integer("id").primaryKey(),
+  bId: integer("b_id").notNull().references((): any => nodeB.id),
+});
+export const nodeB = sqliteTable("node_b", {
+  id: integer("id").primaryKey(),
+  aId: integer("a_id").notNull().references((): any => nodeA.id),
+});`;
+    const CYCLE_FIXTURE = `import { defineFixture } from ${JSON.stringify(SAAT_SRC)};
+import { nodeA, nodeB } from "../db/schema";
+export default defineFixture({ seeds: [
+  { table: nodeA, namespace: "a", rows: { a1: { id: 1, bId: 1 } } },
+  { table: nodeB, namespace: "b", rows: { b1: { id: 1, aId: 1 } } },
+] });`;
+
+    function makeCycleProject(deferConstraints: boolean) {
+      return writeProject({
+        "db/schema.ts": CYCLE_SCHEMA,
+        "drizzle.config.ts": DRIZZLE_CONFIG,
+        "drizzle-saat.config.ts": `export default { seed: 1, deferConstraints: ${deferConstraints} };`,
+        "drizzle-saat/cycle.fixture.ts": CYCLE_FIXTURE,
+      });
+    }
+
+    function makeCycleDb() {
+      const client = new Database(":memory:");
+      client.exec("PRAGMA foreign_keys = ON");
+      client.exec(
+        "CREATE TABLE node_a (id INTEGER PRIMARY KEY, b_id INTEGER NOT NULL REFERENCES node_b(id))",
+      );
+      client.exec(
+        "CREATE TABLE node_b (id INTEGER PRIMARY KEY, a_id INTEGER NOT NULL REFERENCES node_a(id))",
+      );
+      return { client, db: drizzle(client) };
+    }
+
+    test("without deferConstraints, mutual FKs trip a CycleError", async () => {
+      const cwd2 = makeCycleProject(false);
+      try {
+        const { client, db } = makeCycleDb();
+        await expect(seed({ cwd: cwd2, dbCredentials: { db }, seed: 1 })).rejects.toThrow(/cycle/i);
+        client.close();
+      } finally {
+        rmProject(cwd2);
+      }
+    });
+
+    test("with deferConstraints, the cycle seeds and FKs validate at commit", async () => {
+      const cwd2 = makeCycleProject(true);
+      try {
+        const { client, db } = makeCycleDb();
+        const report = await seed({ cwd: cwd2, dbCredentials: { db }, seed: 1 });
+        expect(report.total).toBe(2);
+        expect(client.query("SELECT count(*) c FROM node_a").get()).toEqual({ c: 1 });
+        expect(client.query("SELECT count(*) c FROM node_b").get()).toEqual({ c: 1 });
+        client.close();
+      } finally {
+        rmProject(cwd2);
+      }
+    });
+
+    test("deferConstraints can also be overridden via the seed() option", async () => {
+      const cwd2 = makeCycleProject(false); // config says false…
+      try {
+        const { client, db } = makeCycleDb();
+        // …but the programmatic override turns it on.
+        const report = await seed({
+          cwd: cwd2,
+          dbCredentials: { db },
+          seed: 1,
+          deferConstraints: true,
+        });
+        expect(report.total).toBe(2);
+        client.close();
+      } finally {
+        rmProject(cwd2);
+      }
+    });
+  });
+
+  test("async setup() and top-level await feed values into rows", async () => {
+    const asyncCwd = writeProject({
+      "db/schema.ts": `import { integer, sqliteTable, text } from "drizzle-orm/sqlite-core";
+export const accounts = sqliteTable("accounts", {
+  id: integer("id").primaryKey({ autoIncrement: true }),
+  name: text("name").notNull(),
+  secret: text("secret").notNull(),
+});`,
+      "drizzle.config.ts": DRIZZLE_CONFIG,
+      "drizzle-saat.config.ts": "export default { seed: 1 };",
+      // Top-level await computes a shared value; setup() yields a per-fixture one.
+      "drizzle-saat/accounts.fixture.ts": `import { defineFixture } from ${JSON.stringify(SAAT_SRC)};
+import { accounts } from "../db/schema";
+const shared = await Promise.resolve("TOPLEVEL");
+export default defineFixture({
+  setup: async () => ({ token: await Promise.resolve("SETUP") }),
+  seeds: [
+    { table: accounts, namespace: "bulk", count: 2,
+      data: ({ index, setup }) => ({ name: "a" + index, secret: (setup as { token: string }).token }) },
+    { table: accounts, namespace: "keyed", rows: {
+      root: { name: "root", secret: shared },
+    } },
+  ],
+});`,
+    });
+    try {
+      const client = new Database(":memory:");
+      client.exec(
+        `CREATE TABLE accounts (id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT NOT NULL, secret TEXT NOT NULL)`,
+      );
+      await seed({ cwd: asyncCwd, dbCredentials: { db: drizzle(client) }, seed: 1 });
+      const secrets = client.query("SELECT name, secret FROM accounts ORDER BY id").all() as {
+        name: string;
+        secret: string;
+      }[];
+      // setup() value reached the bulk data() rows…
+      expect(secrets.filter((r) => r.secret === "SETUP")).toHaveLength(2);
+      // …and the top-level await value reached the keyed row.
+      expect(secrets.find((r) => r.name === "root")?.secret).toBe("TOPLEVEL");
+      client.close();
+    } finally {
+      rmProject(asyncCwd);
+    }
+  });
+
+  test("now() inside a fixture is fixed to the configured base time", async () => {
+    const clockCwd = writeProject({
+      "db/schema.ts": `import { integer, sqliteTable, text } from "drizzle-orm/sqlite-core";
+export const events = sqliteTable("events", {
+  id: integer("id").primaryKey({ autoIncrement: true }),
+  label: text("label").notNull(),
+  at: text("at").notNull(),
+});`,
+      "drizzle.config.ts": DRIZZLE_CONFIG,
+      // Fix the run clock to a known instant.
+      "drizzle-saat.config.ts": `export default { seed: 1, now: "2030-03-04T05:06:07.000Z" };`,
+      "drizzle-saat/events.fixture.ts": `import { defineFixture, now } from ${JSON.stringify(SAAT_SRC)};
+import { events } from "../db/schema";
+export default defineFixture({ seeds: [{ table: events, namespace: "event", rows: {
+  base: { label: "base", at: now().toISOString() },
+  later: { label: "later", at: now(86400000).toISOString() },
+} }] });`,
+    });
+    try {
+      const client = new Database(":memory:");
+      client.exec(
+        `CREATE TABLE events (id INTEGER PRIMARY KEY AUTOINCREMENT, label TEXT NOT NULL, at TEXT NOT NULL)`,
+      );
+      await seed({ cwd: clockCwd, dbCredentials: { db: drizzle(client) }, seed: 1 });
+      const at = (label: string) =>
+        (client.query("SELECT at FROM events WHERE label = ?").get(label) as { at: string }).at;
+      expect(at("base")).toBe("2030-03-04T05:06:07.000Z");
+      // now(offset) advances deterministically from the same base (+1 day).
+      expect(at("later")).toBe("2030-03-05T05:06:07.000Z");
+      client.close();
+    } finally {
+      rmProject(clockCwd);
+    }
+  });
+
   test("dry-run surfaces a broken reference without touching a database", async () => {
     const brokenCwd = writeProject({
       "db/schema.ts": SCHEMA,
       "drizzle.config.ts": DRIZZLE_CONFIG,
       "drizzle-saat.config.ts": "export default { seed: 1 };",
-      "drizzle-saat/posts.ts": `import { defineFixture, ref } from ${JSON.stringify(SAAT_SRC)};
+      "drizzle-saat/posts.fixture.ts": `import { defineFixture, ref } from ${JSON.stringify(SAAT_SRC)};
 import { posts } from "../db/schema";
 export default defineFixture({ seeds: [{ table: posts, namespace: "post", count: 1,
   data: () => ({ title: "t", authorId: ref("ghost").random() }) }] });`,

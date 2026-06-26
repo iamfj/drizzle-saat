@@ -2,12 +2,12 @@
 
 The smallest useful drizzle-saat setup: **two tables, one foreign key**.
 
-`drizzle-saat/blog.ts` — ~25 lines — produces **26 users** (25 random + one fixed `admin`
+`drizzle-saat/blog.fixture.ts` — ~25 lines — produces **26 users** (25 random + one fixed `admin`
 you can reference by key) and **100 posts**, each attributed to a random user
 with a valid foreign key. Same seed → same data, every time.
 
 ```ts
-// drizzle-saat/blog.ts (excerpt)
+// drizzle-saat/blog.fixture.ts (excerpt)
 {
   table: posts, namespace: "post", count: 100,
   data: () => ({
